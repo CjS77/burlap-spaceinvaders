@@ -1,0 +1,51 @@
+// Apply the java plugin to add support for Java
+apply plugin: 'java'
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    mavenCentral()
+    maven {
+        url "https://jitpack.io"
+    }
+}
+
+// In this section you declare the dependencies for your production and test code
+dependencies {
+    // The production code uses the SLF4J logging API at compile time
+    //compile 'org.slf4j:slf4j-api:1.5.6'
+    //compile 'org.slf4j:slf4j-capi:1.5.6'
+    compile 'com.github.CjS77:burlap:b4d0d19'
+    compile fileTree(dir: 'lib', include: ['*.jar'])
+    testCompile "junit:junit:4.11"
+}
+
+jar {
+//    project.ext.target = project.hasProperty('target')? project.target : project.name
+//    baseName = project.ext.target
+//    manifest {
+//        attributes 'Main-Class': 'za.co.entelect.challenge.program.Main'
+//    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+task(runVisualise, group: 'execute', description: 'Run an interactive version of the Space Invader game',
+        dependsOn: 'classes', type: JavaExec) {
+    main = 'za.co.nimbus.game.InteractiveGame'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task(runAuto, group: 'execute', description: 'Run the Space Invader with a Policy',
+        dependsOn: 'classes', type: JavaExec) {
+    jvmArgs '-Xmx4g'
+    main = 'za.co.nimbus.game.SpaceInvaderGame'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task(runExampleSG, group: 'execute', description: 'Run the Example Stochastic Game',
+        dependsOn: 'classes', type: JavaExec) {
+    main = 'za.co.nimbus.game.ExampleSG'
+    classpath = sourceSets.main.runtimeClasspath
+}
