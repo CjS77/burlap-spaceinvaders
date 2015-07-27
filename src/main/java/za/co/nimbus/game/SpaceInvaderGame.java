@@ -14,13 +14,13 @@ import burlap.oomdp.core.TerminalFunction;
 import burlap.oomdp.stochasticgames.*;
 import burlap.oomdp.stochasticgames.common.ConstantSGStateGenerator;
 import burlap.oomdp.stochasticgames.common.VisualWorldObserver;
-import org.apache.log4j.Logger;
 import za.co.nimbus.game.agents.RunAndHide;
 import za.co.nimbus.game.agents.SpaceInvaderAgentFactory;
 import za.co.nimbus.game.rules.GameOver;
 import za.co.nimbus.game.rules.SimpleSpaceInvaderState;
 import za.co.nimbus.game.rules.SpaceInvaderRewardFunction;
 import za.co.nimbus.game.visualiser.SpaceInvaderVisualiser;
+import za.co.nimbus.game.world.DomainDefinition;
 import za.co.nimbus.game.world.SpaceInvaderDomainFactory;
 
 import java.time.LocalDateTime;
@@ -34,7 +34,6 @@ public class SpaceInvaderGame implements WorldGenerator {
     private static final double INITIAL_Q = 0.0;
     public static final double DISCOUNT = 0.99;
     public final SpaceInvaderDomainFactory domainFactory;
-    private static final Logger logger = Logger.getLogger(SpaceInvaderGame.class);
     private final Domain domain;
 
     /**
@@ -49,7 +48,7 @@ public class SpaceInvaderGame implements WorldGenerator {
     public World generateWorld() {
         TerminalFunction tf = new GameOver(domain);
         JointReward rf = new SpaceInvaderRewardFunction(domain);
-        ConstantSGStateGenerator sg = new ConstantSGStateGenerator(SpaceInvaderDomainFactory.getInitialState(domain));
+        ConstantSGStateGenerator sg = new ConstantSGStateGenerator(DomainDefinition.getInitialState(domain, 0));
         //SimpleSpaceInvaderState simpleState = new SimpleSpaceInvaderState(domain);
         return new World((SGDomain) domain, rf, tf, sg);
     }
@@ -78,7 +77,6 @@ public class SpaceInvaderGame implements WorldGenerator {
      * @param opponent
      */
     public void experimenterAndPlotter(int nTrials, int trialLength, AgentFactoryAndType opponent) {
-//        logger.info("Starting learning process with "+nTrials+" trials per iteration.");
 //        TerminalFunction tf = new GameOver(domain);
 //        AgentFactoryAndType af0 = new AgentFactoryAndType(agentFactory, domainFactory.createDefaultAgentType(domain));
 //        MultiAgentExperimenter exp = new MultiAgentExperimenter(this, tf, nTrials, trialLength, af0, opponent);

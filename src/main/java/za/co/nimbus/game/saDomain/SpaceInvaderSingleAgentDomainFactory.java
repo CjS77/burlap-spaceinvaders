@@ -1,16 +1,13 @@
 package za.co.nimbus.game.saDomain;
 
 import burlap.oomdp.auxiliary.DomainGenerator;
-import burlap.oomdp.core.*;
+import burlap.oomdp.core.Attribute;
+import burlap.oomdp.core.Domain;
 import burlap.oomdp.singleagent.SADomain;
-import burlap.oomdp.stochasticgames.AgentType;
-import burlap.oomdp.stochasticgames.SGDomain;
-import burlap.oomdp.stochasticgames.SingleAction;
-import za.co.nimbus.game.constants.MetaData;
-import za.co.nimbus.game.rules.*;
+import za.co.nimbus.game.rules.SpaceInvaderMechanics;
+import za.co.nimbus.game.saDomain.opponents.OpponentStrategyFactory;
 import za.co.nimbus.game.world.DomainDefinition;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,19 +22,21 @@ import static za.co.nimbus.game.constants.ObjectClasses.*;
 public class SpaceInvaderSingleAgentDomainFactory implements DomainGenerator {
 
     private final Map<String, Attribute> attributeMap = new HashMap<>();
-    public final List<SingleAction> actionList = new ArrayList<>();
     private final Map<String, List<Attribute>> mAttributesToHash = new HashMap<>();
     private static int AlienCounter = 0;
     private static int ShieldCounter = 0;
-    private final Integer seed;
+    private OpponentStrategy opponentStrategy = null;
+    private final String opponentClass;
 
-    public SpaceInvaderSingleAgentDomainFactory(Integer seed) {
-        this.seed = seed;
+    public SpaceInvaderSingleAgentDomainFactory(String opponentClass, Integer seed) {
+        SpaceInvaderMechanics.seedRNG(seed);
+        this.opponentClass = opponentClass;
     }
 
     @Override
     public Domain generateDomain() {
         SADomain domain = new SADomain();
+        opponentStrategy = OpponentStrategyFactory.createOpponent(opponentClass, domain);
         mAttributesToHash.clear();
         DomainDefinition.initAttributes(domain, attributeMap);
         defineClasses(domain, mAttributesToHash);
@@ -47,23 +46,23 @@ public class SpaceInvaderSingleAgentDomainFactory implements DomainGenerator {
     }
 
     private void defineActions(SADomain domain) {
-        domain.addAction(new SingleShipAction(MoveLeft, domain, seed));
-        domain.addAction(new SingleShipAction(Nothing, domain, seed));
-        domain.addAction(new SingleShipAction(MoveRight, domain, seed));
-        domain.addAction(new SingleShipAction(Shoot, domain, seed));
-        domain.addAction(new SingleShipAction(BuildAlienFactory, domain, seed));
-        domain.addAction(new SingleShipAction(BuildMissileController, domain, seed));
-        domain.addAction(new SingleShipAction(BuildShield, domain, seed));
+        domain.addAction(new SingleShipAction(MoveLeft, domain, opponentStrategy));
+        domain.addAction(new SingleShipAction(Nothing, domain, opponentStrategy));
+        domain.addAction(new SingleShipAction(MoveRight, domain, opponentStrategy));
+        domain.addAction(new SingleShipAction(Shoot, domain, opponentStrategy));
+        domain.addAction(new SingleShipAction(BuildAlienFactory, domain, opponentStrategy));
+        domain.addAction(new SingleShipAction(BuildMissileController, domain, opponentStrategy));
+        domain.addAction(new SingleShipAction(BuildShield, domain, opponentStrategy));
     }
 
     private void defineClasses(Domain domain, Map<String, List<Attribute>> attributesToHash) {
         //Meta data
-        String[] atts = {ROUND_NUM, ALIEN_SHOT_ENERGY, ALIEN_WAVE_SIZE};
-        boolean[] hashed = {false, false, false};
+        String[] atts = {   ROUND_NUM, ALIEN_SHOT_ENERGY, ALIEN_WAVE_SIZE, ACTUAL_PNUM};
+        boolean[] hashed = {false,     false,             false,           true};
         DomainDefinition.initClass(domain, META_CLASS, attributesToHash, atts, hashed, attributeMap);
         //Ships
-        atts = new String[]{X, Y, WIDTH, PNUM, MISSILE_CONTROL, ALIEN_FACTORY, MISSILE_COUNT, KILLS, LIVES, RESPAWN_TIME};
-        hashed = new boolean[]{true, false, true, true, true, true, false, false, false, false};
+        atts =    new String[]{X,    Y,     WIDTH,  PNUM, MISSILE_CONTROL, ALIEN_FACTORY, MISSILE_COUNT, KILLS, LIVES, RESPAWN_TIME};
+        hashed = new boolean[]{true, false, false, false, true,            true,          false,         false, false, false};
         DomainDefinition.initClass(domain, SHIP_CLASS, attributesToHash, atts, hashed, attributeMap);
         //Missiles and Bullets and Buildings
         atts = new String[] {X, Y, WIDTH, PNUM};
@@ -77,9 +76,14 @@ public class SpaceInvaderSingleAgentDomainFactory implements DomainGenerator {
         atts = new String[] {X, Y, WIDTH};
         hashed = new boolean[]{true, true, false};
         DomainDefinition.initClass(domain, SHIELD_CLASS, attributesToHash, atts, hashed, attributeMap);
-        //Simple State
-        atts = new String[] {IS_BEHIND_SHIELDS, DANGER_LEVEL, AT_LEFT_WALL, AT_RIGHT_WALL, CAN_SHOOT, P1_LIVES, P2_LIVES};
-        hashed = new boolean[]{true, true, true, true, true, true, true};
-        DomainDefinition.initClass(domain, SIMPLE_STATE_CLASS, attributesToHash, atts, hashed, attributeMap);
     }
+
+    /**
+     * Returns a map of all the state attributes that should be hashed in a learning algorithm. In general, it is a
+     * subset of the full attribute list. This list will only be populated after a call to {@link #generateDomain}
+     */
+    public Map<String, List<Attribute>> getFullAttributesToHashMap() {
+        return mAttributesToHash;
+    }
+
 }

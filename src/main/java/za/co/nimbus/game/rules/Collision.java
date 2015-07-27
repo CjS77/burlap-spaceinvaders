@@ -30,7 +30,7 @@ public class Collision extends PropositionalFunction {
         locB = new Location(objB.getIntValForAttribute(X), objB.getIntValForAttribute(Y));
         int Aw = objA.getIntValForAttribute(WIDTH);
         int Bw = objB.getIntValForAttribute(WIDTH);
-        //Special case -- missiles 'passing through' each other
+        //Special case -- missiles 'passing through' each other must collide
         if (getName().equals(MISSILE_CLASS + MISSILE_CLASS + NAME)) {
             int p0 = objA.getIntValForAttribute(PNUM);
             int p1 = objA.getIntValForAttribute(PNUM);

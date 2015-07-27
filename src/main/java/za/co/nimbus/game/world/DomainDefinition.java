@@ -1,8 +1,6 @@
 package za.co.nimbus.game.world;
 
-import burlap.oomdp.core.Attribute;
-import burlap.oomdp.core.Domain;
-import burlap.oomdp.core.ObjectClass;
+import burlap.oomdp.core.*;
 import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.rules.Collision;
 import za.co.nimbus.game.rules.OffMap;
@@ -13,19 +11,22 @@ import java.util.List;
 import java.util.Map;
 
 import static za.co.nimbus.game.constants.Attributes.*;
-import static za.co.nimbus.game.constants.Attributes.P2_LIVES;
 import static za.co.nimbus.game.constants.ObjectClasses.*;
 
 /**
  * Static methods that define common features of both the SGDomain and SADomain of the Space invader domains
  */
 public class DomainDefinition {
+    private static int AlienCounter = 0;
+    private static int ShieldCounter = 0;
+
     public static void initAttributes(Domain domain, Map<String, Attribute> attributeMap) {
         attributeMap.clear();
         attributeMap.put(ROUND_NUM, new Attribute(domain, ROUND_NUM, Attribute.AttributeType.INT));
         attributeMap.put(X, new Attribute(domain, X, Attribute.AttributeType.INT));
         attributeMap.put(Y, new Attribute(domain, Y, Attribute.AttributeType.INT));
         attributeMap.put(WIDTH, new Attribute(domain, WIDTH, Attribute.AttributeType.INT));
+        attributeMap.put(ACTUAL_PNUM, new Attribute(domain, ACTUAL_PNUM, Attribute.AttributeType.INT));
         //Ship (Player) attributes
         attributeMap.put(PNUM, new Attribute(domain, PNUM, Attribute.AttributeType.INT));
         attributeMap.put(MISSILE_CONTROL, new Attribute(domain, MISSILE_CONTROL, Attribute.AttributeType.INT));
@@ -34,36 +35,23 @@ public class DomainDefinition {
         attributeMap.put(KILLS, new Attribute(domain, KILLS, Attribute.AttributeType.INT));
         attributeMap.put(LIVES, new Attribute(domain, LIVES, Attribute.AttributeType.INT));
         attributeMap.put(RESPAWN_TIME, new Attribute(domain, RESPAWN_TIME, Attribute.AttributeType.INT));
-        //attributeMap.put(MISSILE_LIMIT, new Attribute(domain, MISSILE_LIMIT, Attribute.AttributeType.INT));
         attributeMap.put(ALIEN_WAVE_SIZE, new Attribute(domain, ALIEN_WAVE_SIZE, Attribute.AttributeType.INT));
         attributeMap.put(ALIEN_SHOT_ENERGY, new Attribute(domain, ALIEN_SHOT_ENERGY, Attribute.AttributeType.INT));
-        // Simplified State Classes
-        attributeMap.put(IS_BEHIND_SHIELDS, new Attribute(domain, IS_BEHIND_SHIELDS, Attribute.AttributeType.BOOLEAN));
-        attributeMap.put(DANGER_LEVEL, new Attribute(domain, DANGER_LEVEL, Attribute.AttributeType.INT));
-        attributeMap.put(WILL_KILL_IF_FIRE, new Attribute(domain, WILL_KILL_IF_FIRE, Attribute.AttributeType.INT));
-        attributeMap.put(AT_LEFT_WALL, new Attribute(domain, AT_LEFT_WALL, Attribute.AttributeType.BOOLEAN));
-        attributeMap.put(AT_RIGHT_WALL, new Attribute(domain, AT_RIGHT_WALL, Attribute.AttributeType.BOOLEAN));
-        attributeMap.put(CAN_SHOOT, new Attribute(domain, CAN_SHOOT, Attribute.AttributeType.BOOLEAN));
-        attributeMap.put(P1_LIVES, new Attribute(domain, P1_LIVES, Attribute.AttributeType.INT));
-        attributeMap.put(P2_LIVES, new Attribute(domain, P2_LIVES, Attribute.AttributeType.INT));
         //Set Bounds for Attributes
         setAttributeBounds(attributeMap, ROUND_NUM, 0, MetaData.ROUND_LIMIT, true);
-        setAttributeBounds(attributeMap, X, 0, MetaData.MAP_WIDTH - 1);
-        setAttributeBounds(attributeMap, Y, 0, MetaData.MAP_HEIGHT - 1);
+        setAttributeBounds(attributeMap, ACTUAL_PNUM, 0, 1);
+        setAttributeBounds(attributeMap, X, -3, MetaData.MAP_WIDTH - 1);
+        setAttributeBounds(attributeMap, Y, -1, MetaData.MAP_HEIGHT);
         setAttributeBounds(attributeMap, WIDTH, 0, 3, true);
         setAttributeBounds(attributeMap, PNUM, 0, 1, true);
         setAttributeBounds(attributeMap, MISSILE_CONTROL, -1, MetaData.MAP_WIDTH);
         setAttributeBounds(attributeMap, ALIEN_FACTORY, -1, MetaData.MAP_WIDTH);
         setAttributeBounds(attributeMap, MISSILE_COUNT, 0, MetaData.MAX_MISSILES);
-        setAttributeBounds(attributeMap, KILLS, 0, 200);
+        setAttributeBounds(attributeMap, KILLS, 0, 50);
         setAttributeBounds(attributeMap, LIVES, -1, 3);
         setAttributeBounds(attributeMap, RESPAWN_TIME, -1, 3);
         setAttributeBounds(attributeMap, ALIEN_WAVE_SIZE, 3, 6);
         setAttributeBounds(attributeMap, ALIEN_SHOT_ENERGY, 0, MetaData.SHOT_COST);
-        setAttributeBounds(attributeMap, DANGER_LEVEL, 0, MetaData.MAP_HEIGHT/2);
-        setAttributeBounds(attributeMap, WILL_KILL_IF_FIRE, -1, MetaData.MAP_HEIGHT/2);
-        setAttributeBounds(attributeMap, P1_LIVES, -1, 3);
-        setAttributeBounds(attributeMap, P2_LIVES, -1, 3);
     }
 
     private static void setAttributeBounds(Map<String, Attribute> attributeMap, String att, int low, int high) {
@@ -118,5 +106,89 @@ public class DomainDefinition {
         new OffMap(domain, MISSILE_CLASS);
         //Player is dead
         new PlayerDead(domain);
+    }
+
+    public static State getInitialState(Domain d, int actualPNum) {
+        State s = new State();
+        addMeta(d, s, 1, 3, 0, actualPNum);
+        addShip(d, s, 0, MetaData.MAP_WIDTH / 2, -1, -1, 0, 0, 2, -1);
+        addShip(d, s, 1, MetaData.MAP_WIDTH / 2, -1, -1, 0, 0, 2, -1);
+        addAlienWave(d, s, 0, 3, actualPNum);
+        addAlienWave(d, s, 1, 3, actualPNum);
+        addInitialShields(d, s);
+        return s;
+    }
+
+    private static ObjectInstance addMeta(Domain d, State s, int roundNum, int waveSize, int alienShotEnergy, int actualPNum) {
+        ObjectInstance meta = new ObjectInstance(d.getObjectClass(META_CLASS), "MetaData");
+        meta.setValue(ROUND_NUM, roundNum);
+        meta.setValue(ALIEN_WAVE_SIZE, waveSize);
+        meta.setValue(ALIEN_SHOT_ENERGY, alienShotEnergy);
+        meta.setValue(ACTUAL_PNUM, actualPNum);
+        s.addObject(meta);
+        return meta;
+    }
+
+    private static void addInitialShields(Domain d, State s) {
+        int posX[] = new int[] {1, MetaData.MAP_WIDTH - 4};
+        int posY[] = new int[] {2, MetaData.MAP_HEIGHT - 5};
+        for (int startX : posX) {
+            for (int startY : posY) {
+                for (int i = 0; i<3; i++) {
+                    for (int j=0; j<3; j++) {
+                        addShield(d, s, startX+i, startY+j);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @param x - the x-pos of the middle of the ship
+     */
+    public static ObjectInstance addShip(Domain d, State s, int playerNum, int x, int missileController, int alienFactory, int missileCount,
+                                         int kills, int lives, int respawn_time) {
+        ObjectInstance ship = new ObjectInstance(d.getObjectClass(SHIP_CLASS), SHIP_CLASS + playerNum);
+        ship.setValue(X, x);
+        ship.setValue(Y, playerNum==0? 1 : MetaData.MAP_HEIGHT-2);
+        ship.setValue(WIDTH, 3);
+        ship.setValue(PNUM, playerNum);
+        ship.setValue(MISSILE_CONTROL, missileController);
+        ship.setValue(ALIEN_FACTORY, alienFactory);
+        ship.setValue(MISSILE_COUNT, missileCount);
+        ship.setValue(KILLS, kills);
+        ship.setValue(LIVES, lives);
+        ship.setValue(RESPAWN_TIME, respawn_time);
+        s.addObject(ship);
+        return ship;
+    }
+
+
+    private static ObjectInstance addShield(Domain d, State s, int x, int y) {
+        ObjectInstance shield = new ObjectInstance(d.getObjectClass(SHIELD_CLASS), SHIELD_CLASS + ShieldCounter++);
+        shield.setValue(X, x);
+        shield.setValue(Y, y);
+        shield.setValue(WIDTH, 1);
+        s.addObject(shield);
+        return shield;
+    }
+
+    private static void addAlienWave(Domain d, State s, int playerNum, int waveSize, int actualPnum) {
+        int pos;
+        for (int i=0; i<waveSize; i++) {
+            pos = actualPnum == 0? MetaData.MAP_WIDTH - 1 - 3*i : 3*i;
+            addAlien(d, s, playerNum, pos);
+        }
+    }
+
+    private static ObjectInstance addAlien(Domain d, State s, int playerNum, int position) {
+        ObjectInstance alien = new ObjectInstance(d.getObjectClass(ALIEN_CLASS), ALIEN_CLASS + AlienCounter++);
+        int y = MetaData.MAP_HEIGHT/2 + (playerNum == 0? 1 : -1);
+        alien.setValue(X, position);
+        alien.setValue(Y, y);
+        alien.setValue(WIDTH, 1);
+        alien.setValue(PNUM, playerNum);
+        s.addObject(alien);
+        return alien;
     }
 }

@@ -7,35 +7,50 @@ import burlap.oomdp.core.TransitionProbability;
 import burlap.oomdp.singleagent.Action;
 import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.constants.ObjectClasses;
+import za.co.nimbus.game.rules.SpaceInvaderMechanics;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.Commands.*;
+import static za.co.nimbus.game.constants.ObjectClasses.ALIEN_CLASS;
+import static za.co.nimbus.game.constants.ObjectClasses.SHIP_CLASS;
 
 /**
  * Defines transition dynamics based on the actions taken by the controlling player's ship
  */
 public class SingleShipAction extends Action {
 
-    private final Integer seed;
-    private ObjectInstance mMyShip = null;
+    private final OpponentStrategy opponentStrategy;
     private int playerNumber = -1;
 
-    public SingleShipAction(String name, Domain domain, Integer seed) {
+    public SingleShipAction(String name, Domain domain, OpponentStrategy opponent) {
         super(name, domain, "");
-        this.seed = seed;
+        this.opponentStrategy = opponent;
     }
 
     /**
-     * Carry out the action and return the resulting state
+     * Carry out the action and return the resulting state - here an actual dice is rolled to determine which alien
+     * fires (if applicable)
      * @param s the state in which the action is to be performed.
      * @param params a String array specifying the action object parameters
      * @return the state that resulted from applying this action
      */
     @Override
     protected State performActionHelper(State s, String[] params) {
-        return null;
+        String oppMove = getOpponentMove(s);
+        return SpaceInvaderMechanics.advanceGameByOneRound(getDomain(), s, this.getName(), oppMove);
+    }
+
+    /**
+     * Utility method that returns the current opponent move (guaranteed to be valid) as a string, for the given state
+     */
+    public String getOpponentMove(State s) {
+        Action oppAction = opponentStrategy.getValidMove(s);
+        return oppAction == null? Nothing : oppAction.getName();
     }
 
     /**
@@ -82,27 +97,56 @@ public class SingleShipAction extends Action {
     }
 
     private ObjectInstance getMyShip(State state) {
-        if (mMyShip != null) return mMyShip;
         ObjectInstance ship = state.getObject(ObjectClasses.SHIP_CLASS + "0");
         if (ship == null) throw new IllegalStateException("Could not find my ship object");
-        mMyShip = ship;
         return ship;
     }
 
     /**
-     * The model is largely deterministic, but the aliens firing is the single source of randomness, so that is captured
-     * here. The opponent ship actions are also assumed to be deterministic since they follow an OpponentShipPolicy
-     * strategy
+     * Return all possible transition states (only returns more than one when aliens fire, in which case n0xn1
+     * TransitionProbabilities are returned for each set of aliens in the first 2 rows for each player)
      * @param s the state from which the transition probabilities when applying this action will be returned.
      * @param params a String array specifying the action object parameters
      * @return a List of transition probabilities for applying this action in the given state with the given set of parameters
      */
     @Override
     public List<TransitionProbability> getTransitions(State s, String[] params) {
-        //If aliens will shoot  TODO
-        //Return list of transitions
-        //else
-        return deterministicTransition(s, params);
+        // Set up work variables for this function
+        List<TransitionProbability> transitions = new ArrayList<>(8);
+        ObjectInstance[] ships = new ObjectInstance[2];
+        Set<ObjectInstance> deadEntities = new HashSet<>();
+        ships[0] = s.getObject(SHIP_CLASS + "0");
+        ships[1] = s.getObject(SHIP_CLASS + "1");
+        String myMove = this.getName();
+        String oppMove = getOpponentMove(s);
+        State preFireState;
+        Domain d = getDomain();
+        // Carry out common events
+        preFireState = SpaceInvaderMechanics.updateEnvironmentPreAlienShoot(d, s, deadEntities);
+        if (!SpaceInvaderMechanics.aliensWillFire(preFireState)) {
+            s = SpaceInvaderMechanics.updateEnvironmentPostAlienShoot(d, preFireState, myMove, oppMove, deadEntities);
+            transitions.add(new TransitionProbability(s, 1.0));
+        } else {
+            List<ObjectInstance> aliens = preFireState.getObjectsOfClass(ALIEN_CLASS);
+            ObjectInstance sniper0 = SpaceInvaderMechanics.getSniper(0, aliens, ships);
+            ObjectInstance sniper1 = SpaceInvaderMechanics.getSniper(1, aliens, ships);
+            List<ObjectInstance> eligible0 = SpaceInvaderMechanics.getAliensFromFirstTwoWaves(0, aliens, null);
+            List<ObjectInstance> eligible1 = SpaceInvaderMechanics.getAliensFromFirstTwoWaves(1, aliens, null);
+            double p0, p1;
+            //Create n0 x n1 transition probabilities
+            for (ObjectInstance alien0: eligible0) {
+                for (ObjectInstance alien1: eligible1) {
+                    State newState = preFireState.copy();
+                    p0 = alien0 == sniper0? 1.0/3.0 : 2.0/(3.0 * (eligible0.size() - 1));
+                    p1 = alien1 == sniper1? 1.0/3.0 : 2.0/(3.0 * (eligible1.size() - 1));
+                    SpaceInvaderMechanics.alienShoots(d, newState, 0, alien0);
+                    SpaceInvaderMechanics.alienShoots(d, newState, 1, alien1);
+                    SpaceInvaderMechanics.updateEnvironmentPostAlienShoot(d, newState, myMove, oppMove, deadEntities);
+                    transitions.add(new TransitionProbability(newState, p0*p1));
+                }
+            }
+        }
+        return transitions;
     }
 
     public int getPlayerNumber(State s) {
@@ -111,4 +155,6 @@ public class SingleShipAction extends Action {
         playerNumber = pNum;
         return pNum;
     }
+
+
 }

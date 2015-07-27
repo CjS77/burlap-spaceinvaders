@@ -20,6 +20,7 @@ public class BackgroundPainter implements StaticPainter {
 
     private void drawStats(Graphics2D g2, State state, int pnum, int x, int y) {
         ObjectInstance ship = state.getObject(ObjectClasses.SHIP_CLASS + pnum);
+        if (ship == null) return;
         int kills = ship.getIntValForAttribute(KILLS);
         int lives = ship.getIntValForAttribute(LIVES);
         g2.drawString("Kills: " + kills, x, y);

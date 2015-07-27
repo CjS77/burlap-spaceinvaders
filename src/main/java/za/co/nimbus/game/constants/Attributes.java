@@ -8,6 +8,7 @@ public final class Attributes {
     public static final String WIDTH = "Width";
     // Ship (Player) Attributes
     public static final String PNUM = "playerNum";
+    public static final String ACTUAL_PNUM = "ActualPlayerNum"; //The field is always oriented so it appears we're player 1
     public static final String MISSILE_CONTROL = "missileController";
     public static final String ALIEN_FACTORY = "alienFactory";
     public static final String MISSILE_COUNT = "missileCount";

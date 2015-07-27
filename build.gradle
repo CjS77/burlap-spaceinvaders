@@ -15,8 +15,10 @@ dependencies {
     //compile 'org.slf4j:slf4j-api:1.5.6'
     //compile 'org.slf4j:slf4j-capi:1.5.6'
     compile 'com.github.CjS77:burlap:b4d0d19'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
     compile fileTree(dir: 'lib', include: ['*.jar'])
-    testCompile "junit:junit:4.11"
 }
 
 jar {
@@ -34,6 +36,15 @@ jar {
 task(runVisualise, group: 'execute', description: 'Run an interactive version of the Space Invader game',
         dependsOn: 'classes', type: JavaExec) {
     main = 'za.co.nimbus.game.InteractiveGame'
+    classpath = sourceSets.main.runtimeClasspath
+    args = ["SittingDuck", "0"]
+}
+
+task(trainAgent, group: 'execute', description: 'Train the Agent with the given learning algorithm',
+        dependsOn: 'classes', type: JavaExec) {
+    jvmArgs '-Xmx4g'
+    main = 'za.co.nimbus.game.SpaceCamp'
+    args = ["RunAndHide", "0"]
     classpath = sourceSets.main.runtimeClasspath
 }
 
