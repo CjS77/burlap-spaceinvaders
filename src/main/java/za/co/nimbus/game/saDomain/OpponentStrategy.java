@@ -17,4 +17,10 @@ public interface OpponentStrategy {
      * isApplicableInState. If no valid move is available, null can be returned as a default no-op Action
      */
     Action getValidMove(State s);
+
+    /**
+     * Gives the opponent n opportunity to carry out initialization after the domain definition has been finalized.
+     * @param spaceInvaderDomainFactory
+     */
+    void init(SpaceInvaderSingleAgentDomainFactory spaceInvaderDomainFactory);
 }

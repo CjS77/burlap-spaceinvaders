@@ -3,6 +3,7 @@ package za.co.nimbus.game.saDomain.opponents;
 import burlap.oomdp.core.Domain;
 import burlap.oomdp.core.State;
 import burlap.oomdp.singleagent.Action;
+import za.co.nimbus.game.saDomain.SpaceInvaderSingleAgentDomainFactory;
 
 import static za.co.nimbus.game.constants.Commands.MoveLeft;
 import static za.co.nimbus.game.constants.Commands.Nothing;
@@ -20,4 +21,7 @@ public class SittingDuck extends AbstractOpponent {
     public Action getProposedMove(State s) {
         return domain.getAction(Nothing);
     }
+
+    @Override
+    public void init(SpaceInvaderSingleAgentDomainFactory spaceInvaderDomainFactory) { }
 }

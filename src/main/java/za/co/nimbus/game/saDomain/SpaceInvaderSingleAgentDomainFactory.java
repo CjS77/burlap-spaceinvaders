@@ -42,6 +42,7 @@ public class SpaceInvaderSingleAgentDomainFactory implements DomainGenerator {
         defineClasses(domain, mAttributesToHash);
         defineActions(domain);
         DomainDefinition.defineInteractions(domain);
+        opponentStrategy.init(this);
         return domain;
     }
 
@@ -57,12 +58,12 @@ public class SpaceInvaderSingleAgentDomainFactory implements DomainGenerator {
 
     private void defineClasses(Domain domain, Map<String, List<Attribute>> attributesToHash) {
         //Meta data
-        String[] atts = {   ROUND_NUM, ALIEN_SHOT_ENERGY, ALIEN_WAVE_SIZE, ACTUAL_PNUM};
-        boolean[] hashed = {false,     false,             false,           true};
+        String[] atts = {   ROUND_NUM, ALIEN_WAVE_SIZE, ACTUAL_PNUM};
+        boolean[] hashed = {false,     false,           true};
         DomainDefinition.initClass(domain, META_CLASS, attributesToHash, atts, hashed, attributeMap);
         //Ships
-        atts =    new String[]{X,    Y,     WIDTH,  PNUM, MISSILE_CONTROL, ALIEN_FACTORY, MISSILE_COUNT, KILLS, LIVES, RESPAWN_TIME};
-        hashed = new boolean[]{true, false, false, false, true,            true,          false,         false, false, false};
+        atts =    new String[]{X,    Y,     WIDTH,  PNUM, MISSILE_CONTROL, ALIEN_FACTORY, MISSILE_COUNT, KILLS, LIVES, RESPAWN_TIME, ALIEN_SHOT_ENERGY, DELTA_X};
+        hashed = new boolean[]{true, false, false, false, true,            true,          false,         false, false, false,        false,             true};
         DomainDefinition.initClass(domain, SHIP_CLASS, attributesToHash, atts, hashed, attributeMap);
         //Missiles and Bullets and Buildings
         atts = new String[] {X, Y, WIDTH, PNUM};

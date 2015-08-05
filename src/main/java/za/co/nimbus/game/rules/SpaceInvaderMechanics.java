@@ -11,6 +11,7 @@ import java.util.*;
 import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.Commands.*;
 import static za.co.nimbus.game.constants.ObjectClasses.*;
+import static za.co.nimbus.game.constants.MetaData.*;
 
 /**
  * A stateless implementation for the transition dynamics for the Space invader game. All the functions are static,
@@ -33,7 +34,8 @@ public class SpaceInvaderMechanics {
         SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, state, deadEntities);
         SpaceInvaderMechanics.moveProjectiles(state, BULLET_CLASS);
         SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, state, deadEntities);
-        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, state, ships);
+        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, state, 0, ships[0]);
+        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, state, 1, ships[1]);
         SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, state, deadEntities);
         return state;
     }
@@ -58,39 +60,44 @@ public class SpaceInvaderMechanics {
     public static State advanceGameByOneRound(Domain domain, State state, String myMove, String opponentMove) {
         Set<ObjectInstance> deadEntities = new HashSet<>();
         state = updateEnvironmentPreAlienShoot(domain, state, deadEntities);
-        aliensShootIfPossible(domain, state);
+        aliensShootIfPossible(domain, state, 0);
+        aliensShootIfPossible(domain, state, 1);
         handleCollisionsAndRemoveDeadEntities(domain, state, deadEntities);
         return updateEnvironmentPostAlienShoot(domain, state, myMove, opponentMove, deadEntities);
     }
 
-    public static boolean aliensWillFire(State s) {
-        ObjectInstance meta = s.getFirstObjectOfClass(META_CLASS);
-        int shotEnergy =  meta.getIntValForAttribute(ALIEN_SHOT_ENERGY);
-        return shotEnergy >= MetaData.SHOT_COST;
+    public static boolean aliensWillFire(ObjectInstance ship) {
+        int shotEnergy = ship.getIntValForAttribute(ALIEN_SHOT_ENERGY);
+        return shotEnergy + 1 >= MetaData.SHOT_COST;
     }
 
-    private static void aliensShootIfPossible(Domain d, State state) {
-        if (aliensWillFire(state)) {
-            ObjectInstance[] ships = new ObjectInstance[2];
-            ships[0] = state.getObject(SHIP_CLASS + "0");
-            ships[1] = state.getObject(SHIP_CLASS + "1");
-            ObjectInstance meta = state.getFirstObjectOfClass(META_CLASS);
-            int shotEnergy =  meta.getIntValForAttribute(ALIEN_SHOT_ENERGY);
-            meta.setValue(ALIEN_SHOT_ENERGY, shotEnergy - MetaData.SHOT_COST);
+    public static boolean aliensWillFire(State s, int pNum) {
+        ObjectInstance ship = s.getObject(SHIP_CLASS + pNum);
+        return aliensWillFire(ship);
+    }
+
+    private static void aliensShootIfPossible(Domain d, State state, int pNum) {
+        ObjectInstance ship = state.getObject(SHIP_CLASS + "0");
+        if (aliensWillFire(ship)) {
             List<ObjectInstance> aliens = state.getObjectsOfClass(ALIEN_CLASS);
-            playersAliensFire(d, state, 0, aliens, ships);
-            playersAliensFire(d, state, 1, aliens, ships);
+            if (playersAliensFire(d, state, pNum, aliens, ship)) {
+                int shotEnergy =  ship.getIntValForAttribute(ALIEN_SHOT_ENERGY);
+                ship.setValue(ALIEN_SHOT_ENERGY, shotEnergy - MetaData.SHOT_COST);
+            }
         }
     }
 
-    private static void playersAliensFire(Domain d, State state, int pNum, List<ObjectInstance> aliens, ObjectInstance[] ships) {
+    private static boolean playersAliensFire(Domain d, State state, int pNum, List<ObjectInstance> aliens, ObjectInstance ship) {
         int strategy = rnd.nextInt(3);
-        ObjectInstance alien = getSniper(pNum, aliens, ships);
+        ObjectInstance alien = getSniper(pNum, aliens, ship);
         if (strategy == 0) {
             alienShoots(d, state, pNum, alien);
+            return true;
         } else {
             alien = randomAlienShoots(pNum, alien, aliens);
+            if (alien == null) return false;
             alienShoots(d, state, pNum, alien);
+            return true;
         }
     }
 
@@ -168,10 +175,10 @@ public class SpaceInvaderMechanics {
     /**
      * Find closest ENEMY alien to shoot AT pNum
      */
-    public static ObjectInstance getSniper(int pNum, List<ObjectInstance> aliens, ObjectInstance[] ships) {
+    public static ObjectInstance getSniper(int pNum, List<ObjectInstance> aliens, ObjectInstance ship) {
         int maxDistX = 1000;
         int maxDistY = 1000;
-        Location shipLoc = Location.getObjectLocation(ships[pNum]);
+        Location shipLoc = Location.getObjectLocation(ship);
         ObjectInstance closestAlien = null;
         for (ObjectInstance alien : aliens) {
             int ap = alien.getIntValForAttribute(PNUM);
@@ -192,40 +199,128 @@ public class SpaceInvaderMechanics {
         return closestAlien;
     }
 
-    private static void spawnAliensIfRequiredAndMove(Domain d, State state, ObjectInstance[] ships) {
-        List<ObjectInstance> aliens = state.getObjectsOfClass(ALIEN_CLASS);
-        int[][] onWall = getAlienPosition(aliens);
-        ObjectInstance meta = state.getObject("MetaData");
-        int actualPNum = meta.getIntValForAttribute(ACTUAL_PNUM);
-        int roundNum = state.getFirstObjectOfClass(META_CLASS).getIntValForAttribute(ROUND_NUM);
-        if (roundNum > 1) {
-             if (onWall[0][0] > 0 && (onWall[0][1] > MetaData.MAP_HEIGHT/2 + 2)) spawnAlienRow(d, state, ships, 0);
-             if (onWall[1][0] > 0 && (onWall[1][1] < MetaData.MAP_HEIGHT/2 - 2)) spawnAlienRow(d, state, ships, 1);
-        }
-        aliens = state.getObjectsOfClass(ALIEN_CLASS);
-        for (ObjectInstance alien : aliens) {
-            Location loc = Location.getObjectLocation(alien);
-            int pNum = alien.getIntValForAttribute(PNUM);
-            setPosition(alien, nextAlienLocation(loc, onWall[pNum][0], actualPNum));
-        }
-
+    /**
+     * Determines whether a new alien row should spawn for player pNum
+     * @param pNum the player who OWNS the aliens (i.e. they fire at the other player)
+     * @return true if a new row of aliens should be created
+     */
+    private static boolean shouldAliensSpawn(int pNum, List<ObjectInstance> aliens) {
+     int dy = pNum == 0? 1 : -1;
+     int spawnRow = MAP_HEIGHT/2 + dy;
+     return areRowsClear(aliens, spawnRow, spawnRow + dy);
     }
 
-    private static void spawnAlienRow(Domain d, State state, ObjectInstance[] ships, int pNum) {
-        int waveSize = state.getFirstObjectOfClass(META_CLASS).getIntValForAttribute(ALIEN_WAVE_SIZE);
-        //Wave size is one bigger if opponent has an alien factory
-        if (ships[pNum].getIntValForAttribute(ALIEN_FACTORY) >= 0) waveSize++;
-        int pos;
-        for (int i=0; i<waveSize; i++) {
-            pos = i * 3;
-            addAlien(d, state, pNum, pos);
+    private static boolean areRowsClear(List<ObjectInstance> aliens, int... rows) {
+        for (ObjectInstance alien : aliens) {
+            int y = alien.getIntValForAttribute(Y);
+            for (int row : rows) {
+                if (y == row) return false;
+            }
         }
+        return true;
+    }
+
+    /**
+     * Spawna new wave of aliens (if required) and move them. Aliens are owned by player pNum
+     * @param d the domain
+     * @param state the current state
+     * @param pNum the player that owns the aliens
+     * @param ship the player's ship object
+     */
+    private static void spawnAliensIfRequiredAndMove(Domain d, State state, int pNum, ObjectInstance ship) {
+        List<ObjectInstance> aliens = state.getObjectsOfClass(ALIEN_CLASS);
+        if (shouldAliensSpawn(pNum, aliens)) {
+            spawnAlienRow(d, state, ship, pNum);
+            aliens = state.getObjectsOfClass(ALIEN_CLASS);
+        }
+        moveAliens(state, pNum, aliens, ship);
+    }
+
+    /**
+     * Moves alien waves for aliens belonging to pNum. Also mutates ship if aliens shift direction
+     */
+    public static void moveAliens(State state, int pNum, List<ObjectInstance> aliens, ObjectInstance ship) {
+        int[] span = getAlienSpan(aliens, pNum);
+        int dx = ship.getIntValForAttribute(DELTA_X);
+        boolean mustAdvance = (dx > 0)? span[1] == MAP_WIDTH-1 : span[0] == 0;
+        if (mustAdvance) {
+            int dy = pNum == 0? 1 : -1;
+            shiftAliens(state, aliens, 0, dy, pNum);
+            ship.setValue(DELTA_X, -dx);
+        } else {
+            shiftAliens(state, aliens, dx, 0, pNum);
+        }
+    }
+
+    private static void shiftAliens(State s, List<ObjectInstance> aliens, int dx, int dy, int pNum) {
+        for (ObjectInstance alien : aliens) {
+            if (alien.getIntValForAttribute(PNUM) == pNum) {
+                Location loc = Location.getObjectLocation(alien);
+                setPosition(alien, new Location(loc.x + dx, loc.y + dy));
+                //Check if the game is over
+                if (pNum == 0 && loc.y + dy >= MetaData.MAP_HEIGHT) killPlayer(1, s);
+                if (pNum == 1 && loc.y + dy < 0) killPlayer(0, s);
+            }
+        }
+    }
+
+    private static void killPlayer(int pNum, State state) {
+        ObjectInstance ship = state.getObject(SHIP_CLASS + pNum);
+        ship.setValue(LIVES, -1);
+    }
+
+    /**
+     * Spawn a new wave of aliens for the current player
+     */
+    private static void spawnAlienRow(Domain d, State state, ObjectInstance ship, int pNum) {
+        int dx = ship.getIntValForAttribute(DELTA_X);
+        List<ObjectInstance> aliens = state.getObjectsOfClass(ALIEN_CLASS);
+        //Determine wave size. It's is one bigger if opponent has an alien factory
+        int waveSize = state.getFirstObjectOfClass(META_CLASS).getIntValForAttribute(ALIEN_WAVE_SIZE);
+        if (ship.getIntValForAttribute(ALIEN_FACTORY) >= 0) waveSize++;
+        int waveCount = getAlienWaveCount(aliens, pNum);
+        int x0;
+        if (waveCount == 0) {
+            x0 = dx==1? 0 : MAP_HEIGHT - 1;
+        } else {
+            int[] span = getAlienSpan(aliens, pNum);
+            x0 = dx==1? span[0] : span[1];
+        }
+        for (int i=0; i<waveSize; i++) {
+            addAlien(d, state, pNum, x0 + i*3*dx);
+        }
+    }
+
+    private static int[] getAlienSpan(List<ObjectInstance> aliens, int pNum) {
+        int[] result = new int[] {MAP_HEIGHT, -1};
+        for (ObjectInstance alien : aliens) {
+            int ap = alien.getIntValForAttribute(PNUM);
+            if (ap == pNum) {
+                int x = alien.getIntValForAttribute(X);
+                if (x < result[0]) result[0] = x;
+                if (x > result[1]) result[1] = x;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Count the number of alien waves belonging to player pNum
+     */
+    private static int getAlienWaveCount(List<ObjectInstance> aliens, int pNum) {
+        HashSet<Integer> waves = new HashSet<>(5);
+        for (ObjectInstance alien : aliens) {
+            if (alien.getIntValForAttribute(PNUM) == pNum) {
+                waves.add(alien.getIntValForAttribute(Y));
+            }
+        }
+        return waves.size();
     }
 
     private static ObjectInstance addAlien(Domain d, State s, int playerNum, int position) {
         ObjectInstance alien =createNewObject(d, s, ALIEN_CLASS);
         int y = MetaData.MAP_HEIGHT/2 + (playerNum == 0? 1 : -1);
-        alien.setValue(X, MetaData.MAP_WIDTH - 1 - position);
+        alien.setValue(X, position);
         alien.setValue(Y, y);
         alien.setValue(WIDTH, 1);
         alien.setValue(PNUM, playerNum);
@@ -244,44 +339,6 @@ public class SpaceInvaderMechanics {
                 }
             }
         }
-    }
-
-    /**
-     * @return a vector for each player with the following convention
-     * 0 : co-ordinate of wall. Either 0 or MAPWIDTH-1 or -1 if not on a wall
-     * 1 : y-coord of bottom-most alien for player 0 or top-most for layer 1
-     */
-    public static int[][] getAlienPosition(List<ObjectInstance> aliens) {
-        int[][] onWall = new int[][]{
-                new int[]{-1, 9999},
-                new int[] {-1, -1}
-        };
-        for (ObjectInstance alien: aliens) {
-            int pNum = alien.getIntValForAttribute(PNUM);
-            Location loc = Location.getObjectLocation(alien);
-            if (loc.x == 0 || loc.x == MetaData.MAP_WIDTH-1) {
-                onWall[pNum][0] = loc.x;
-            }
-            if (pNum == 0 && loc.y < onWall[0][1]) onWall[0][1] = loc.y;
-            if (pNum == 1 && loc.y > onWall[1][1]) onWall[1][1] = loc.y;
-        }
-        return onWall;
-    }
-
-    /**
-     * Calculates next position for an alient at cur.
-     * @param cur - cur pos
-     * @param atWall - 0, MAP_WIDTH-1, or -1 for left, right, or none
-     * @return - next pos
-     */
-    public static Location nextAlienLocation(Location cur, int atWall, int actualPNum) {
-        int dirswitch = actualPNum == 0? 1 : -1;
-        int xdir = dirswitch * ((cur.y % 2 == 0)? -1 : 1);
-        int ydir = (cur.y > MetaData.MAP_HEIGHT/2)? 1 : -1;
-        //Must move down
-        if ((atWall == 0 && xdir == -1) || (atWall > 0 && xdir == 1)) return new Location(cur.x, cur.y + ydir);
-        //normal move
-        return new Location(cur.x + xdir, cur.y);
     }
 
     private static void moveProjectiles(State state, String objectClass) {
@@ -340,7 +397,12 @@ public class SpaceInvaderMechanics {
         for (int i=-1; i<2; i++) {
             for (int j = 1; j <= 3; j++) {
                 Location loc = new Location(shipLoc.x + i, shipLoc.y + dir * j);
-                if (getObjectAt(state, loc.x, loc.y) == null) buildShield(d, state, loc);
+                ObjectInstance obj = getObjectAt(state, loc.x, loc.y);
+                if (obj == null || !obj.getObjectClass().name.equals(SHIELD_CLASS) ) {
+                    //If there was nothing in this space, build shield
+                    //If there is, it should be picked up at the next collision detection and the appropriate action should occur
+                    buildShield(d, state, loc);
+                }
             }
         }
         decAttribute(ship, LIVES);
@@ -378,7 +440,7 @@ public class SpaceInvaderMechanics {
     }
 
     /**
-     * @param loc - expecting absolute (global) location corrids
+     * @param loc - expecting absolute (global) location coords
      */
     private static void setPosition(ObjectInstance ob, Location loc) {
         ob.setValue(X, loc.x);
@@ -386,7 +448,7 @@ public class SpaceInvaderMechanics {
     }
 
     //Creates a new object with a guaranteed unique name
-    private static ObjectInstance createNewObject(Domain domain, State state, String objectClass) {
+    public static ObjectInstance createNewObject(Domain domain, State state, String objectClass) {
         int counter = state.getObjectsOfClass(objectClass).size();
         while (state.getObject(objectClass+counter) != null) counter++;
         return new ObjectInstance(domain.getObjectClass(objectClass), objectClass+counter);
@@ -394,9 +456,10 @@ public class SpaceInvaderMechanics {
 
 
 
-    private static void incrAttribute(ObjectInstance ob, String attr) {
+    private static int incrAttribute(ObjectInstance ob, String attr) {
         int val = ob.getIntValForAttribute(attr);
         ob.setValue(attr, val+1);
+        return val+1;
     }
 
     private static void decAttribute(ObjectInstance ob, String attr) {
@@ -407,7 +470,6 @@ public class SpaceInvaderMechanics {
     private static void updateMeta(State state) {
         ObjectInstance meta = state.getFirstObjectOfClass(META_CLASS);
         incrAttribute(meta, ROUND_NUM);
-        incrAttribute(meta, ALIEN_SHOT_ENERGY);
         int roundNum = meta.getIntValForAttribute(ROUND_NUM);
         if (roundNum == MetaData.WAVE_BUMP_ROUND) incrAttribute(meta, ALIEN_WAVE_SIZE);
     }
@@ -422,6 +484,7 @@ public class SpaceInvaderMechanics {
             ship.setValue(X, MetaData.MAP_WIDTH/2);
         }
         ship.setValue(MISSILE_COUNT, getMissileCount(s, ship));
+        incrAttribute(ship, ALIEN_SHOT_ENERGY);
     }
 
     private static int getMissileCount(State s, ObjectInstance ship) {
@@ -525,9 +588,10 @@ public class SpaceInvaderMechanics {
         for (int i=-1; i<2; i++) {
             for (int j=-1; j<2; j++) {
                 ObjectInstance ob;
-                if (i == 0 && j == 0 )
-                    ob = state.getObject(collision.params[1]);
-                else ob = getObjectAt(state, loc.x + i, loc.y + j);
+                //if (i == 0 && j == 0 )
+                //    ob = state.getObject(collision.params[1]);
+                //else ob = getObjectAt(state, loc.x + i, loc.y + j);
+                ob = getObjectAt(state, loc.x + i, loc.y + j);
                 if (ob != null) {
                     String obClass = ob.getTrueClassName();
                     switch (obClass) {
@@ -595,8 +659,9 @@ public class SpaceInvaderMechanics {
 
     private static void recordBuildingStatus(State state, ObjectInstance[] ships, GroundedProp collision, String buildingAttr) {
         ObjectInstance mc = state.getObject(collision.params[1]);
+        if (mc == null) return;
         int pNum = mc.getIntValForAttribute(PNUM);
-        ships[pNum].setValue(buildingAttr, -1);
+        ships[pNum].setValue(buildingAttr, -2);
     }
 
 

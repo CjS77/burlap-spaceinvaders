@@ -26,7 +26,7 @@ public class InteractiveGame {
         DPrint.cf(0, "Running interactive using %s opponentStrategy as playing as player %d\n", oppStrat, pNumActual+1);
         SpaceInvaderSingleAgentDomainFactory df = new SpaceInvaderSingleAgentDomainFactory(oppStrat, pNumActual);
         SADomain d = (SADomain) df.generateDomain();
-        State s = DomainDefinition.getInitialState(d, 1);
+        State s = DomainDefinition.getInitialState(d, pNumActual);
         VisualExplorer exp = SpaceInvaderVisualiser.getVisualExplorer(d, s);
         GameOver tf = new GameOver(d);
         exp.setTerminalFunction(tf);

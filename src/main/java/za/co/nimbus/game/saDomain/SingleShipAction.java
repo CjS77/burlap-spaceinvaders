@@ -17,6 +17,7 @@ import java.util.Set;
 import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.Commands.*;
 import static za.co.nimbus.game.constants.ObjectClasses.ALIEN_CLASS;
+import static za.co.nimbus.game.constants.ObjectClasses.META_CLASS;
 import static za.co.nimbus.game.constants.ObjectClasses.SHIP_CLASS;
 
 /**
@@ -49,8 +50,10 @@ public class SingleShipAction extends Action {
      * Utility method that returns the current opponent move (guaranteed to be valid) as a string, for the given state
      */
     public String getOpponentMove(State s) {
-        Action oppAction = opponentStrategy.getValidMove(s);
-        return oppAction == null? Nothing : oppAction.getName();
+        State flipped = StateFlipper.flipState(s);
+        Action oppAction = opponentStrategy.getValidMove(flipped);
+        String flippedMove = oppAction== null? Nothing : StateFlipper.flipMove(oppAction.getName());
+        return flippedMove;
     }
 
     /**
@@ -112,7 +115,7 @@ public class SingleShipAction extends Action {
     @Override
     public List<TransitionProbability> getTransitions(State s, String[] params) {
         // Set up work variables for this function
-        List<TransitionProbability> transitions = new ArrayList<>(8);
+        List<TransitionProbability> transitions = new ArrayList<>();
         ObjectInstance[] ships = new ObjectInstance[2];
         Set<ObjectInstance> deadEntities = new HashSet<>();
         ships[0] = s.getObject(SHIP_CLASS + "0");
@@ -123,31 +126,71 @@ public class SingleShipAction extends Action {
         Domain d = getDomain();
         // Carry out common events
         preFireState = SpaceInvaderMechanics.updateEnvironmentPreAlienShoot(d, s, deadEntities);
-        if (!SpaceInvaderMechanics.aliensWillFire(preFireState)) {
+        boolean[] aliensFire = new boolean[] {
+            SpaceInvaderMechanics.aliensWillFire(ships[0]),
+            SpaceInvaderMechanics.aliensWillFire(ships[1])
+        };
+        if (!(aliensFire[0] || aliensFire[1])) {
             s = SpaceInvaderMechanics.updateEnvironmentPostAlienShoot(d, preFireState, myMove, oppMove, deadEntities);
             transitions.add(new TransitionProbability(s, 1.0));
         } else {
             List<ObjectInstance> aliens = preFireState.getObjectsOfClass(ALIEN_CLASS);
-            ObjectInstance sniper0 = SpaceInvaderMechanics.getSniper(0, aliens, ships);
-            ObjectInstance sniper1 = SpaceInvaderMechanics.getSniper(1, aliens, ships);
+            ObjectInstance sniper0 = aliensFire[0]? SpaceInvaderMechanics.getSniper(0, aliens, ships[0]) : null;
+            ObjectInstance sniper1 = aliensFire[1]? SpaceInvaderMechanics.getSniper(1, aliens, ships[1]) : null;
             List<ObjectInstance> eligible0 = SpaceInvaderMechanics.getAliensFromFirstTwoWaves(0, aliens, null);
             List<ObjectInstance> eligible1 = SpaceInvaderMechanics.getAliensFromFirstTwoWaves(1, aliens, null);
-            double p0, p1;
-            //Create n0 x n1 transition probabilities
-            for (ObjectInstance alien0: eligible0) {
-                for (ObjectInstance alien1: eligible1) {
-                    State newState = preFireState.copy();
-                    p0 = alien0 == sniper0? 1.0/3.0 : 2.0/(3.0 * (eligible0.size() - 1));
-                    p1 = alien1 == sniper1? 1.0/3.0 : 2.0/(3.0 * (eligible1.size() - 1));
+            State newState;
+            List<TransitionProbability> p0Transitions = new ArrayList<>(8);
+            //The alien mechanics are independent for each player, so they can be handled separately
+            if (eligible0.size()==1) {
+                //67% of time there is no shot
+                p0Transitions.add(new TransitionProbability(preFireState.copy(), 2.0/3.0));
+                //33% of time the sniper shoots
+                newState = preFireState.copy();
+                SpaceInvaderMechanics.alienShoots(d, newState, 0, sniper0);
+                adjustShotEnergy(ships[0]);
+                p0Transitions.add(new TransitionProbability(newState, 1.0/3.0));
+            } else {
+                for (ObjectInstance alien0 : eligible0) {
+                    double p0 = alien0 == sniper0 ? 1.0 / 3.0 : 2.0 / (3.0 * (eligible0.size() - 1));
+                    newState = preFireState.copy();
                     SpaceInvaderMechanics.alienShoots(d, newState, 0, alien0);
-                    SpaceInvaderMechanics.alienShoots(d, newState, 1, alien1);
-                    SpaceInvaderMechanics.updateEnvironmentPostAlienShoot(d, newState, myMove, oppMove, deadEntities);
-                    transitions.add(new TransitionProbability(newState, p0*p1));
+                    adjustShotEnergy(ships[0]);
+                    p0Transitions.add(new TransitionProbability(newState, p0));
                 }
             }
+            //For each of those probabilities, add a set for player 2 with updated states and total probabilities
+            for (TransitionProbability p0Transition : p0Transitions) {
+                State p0State = p0Transition.s.copy();
+                double p0 = p0Transition.p;
+                if (eligible1.size()==1) {
+                    //67% of time there is no shot
+                    transitions.add(new TransitionProbability(p0State, p0*2.0/3.0));
+                    //33% of time the sniper shoots
+                    newState = p0State.copy();
+                    SpaceInvaderMechanics.alienShoots(d, newState, 1, sniper1);
+                    adjustShotEnergy(ships[1]);
+                    transitions.add(new TransitionProbability(newState, p0*1.0/3.0));
+                } else {
+                    for (ObjectInstance alien1 : eligible1) {
+                        double p1 = alien1 == sniper1 ? 1.0 / 3.0 : 2.0 / (3.0 * (eligible1.size() - 1));
+                        newState = p0State.copy();
+                        SpaceInvaderMechanics.alienShoots(d, newState, 1, alien1);
+                        adjustShotEnergy(ships[1]);
+                        transitions.add(new TransitionProbability(newState, p0*p1));
+                    }
+                }
+            }
+
         }
         return transitions;
     }
+
+    private void adjustShotEnergy(ObjectInstance ship) {
+        int shotEnergy = ship.getIntValForAttribute(ALIEN_SHOT_ENERGY);
+        ship.setValue(ALIEN_SHOT_ENERGY, shotEnergy - MetaData.SHOT_COST);
+    }
+
 
     public int getPlayerNumber(State s) {
         if (playerNumber >= 0) return playerNumber;

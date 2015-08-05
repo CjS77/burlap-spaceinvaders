@@ -16,7 +16,7 @@ import static za.co.nimbus.game.constants.ObjectClasses.*;
 /**
  * Static methods that define common features of both the SGDomain and SADomain of the Space invader domains
  */
-public class DomainDefinition {
+public class DomainDefinition  {
     private static int AlienCounter = 0;
     private static int ShieldCounter = 0;
 
@@ -27,6 +27,7 @@ public class DomainDefinition {
         attributeMap.put(Y, new Attribute(domain, Y, Attribute.AttributeType.INT));
         attributeMap.put(WIDTH, new Attribute(domain, WIDTH, Attribute.AttributeType.INT));
         attributeMap.put(ACTUAL_PNUM, new Attribute(domain, ACTUAL_PNUM, Attribute.AttributeType.INT));
+        attributeMap.put(DELTA_X, new Attribute(domain, DELTA_X, Attribute.AttributeType.INT));
         //Ship (Player) attributes
         attributeMap.put(PNUM, new Attribute(domain, PNUM, Attribute.AttributeType.INT));
         attributeMap.put(MISSILE_CONTROL, new Attribute(domain, MISSILE_CONTROL, Attribute.AttributeType.INT));
@@ -40,12 +41,13 @@ public class DomainDefinition {
         //Set Bounds for Attributes
         setAttributeBounds(attributeMap, ROUND_NUM, 0, MetaData.ROUND_LIMIT, true);
         setAttributeBounds(attributeMap, ACTUAL_PNUM, 0, 1);
+        setAttributeBounds(attributeMap, DELTA_X, -1, 1);
         setAttributeBounds(attributeMap, X, -3, MetaData.MAP_WIDTH - 1);
         setAttributeBounds(attributeMap, Y, -1, MetaData.MAP_HEIGHT);
         setAttributeBounds(attributeMap, WIDTH, 0, 3, true);
         setAttributeBounds(attributeMap, PNUM, 0, 1, true);
-        setAttributeBounds(attributeMap, MISSILE_CONTROL, -1, MetaData.MAP_WIDTH);
-        setAttributeBounds(attributeMap, ALIEN_FACTORY, -1, MetaData.MAP_WIDTH);
+        setAttributeBounds(attributeMap, MISSILE_CONTROL, -2, MetaData.MAP_WIDTH);
+        setAttributeBounds(attributeMap, ALIEN_FACTORY, -2, MetaData.MAP_WIDTH);
         setAttributeBounds(attributeMap, MISSILE_COUNT, 0, MetaData.MAX_MISSILES);
         setAttributeBounds(attributeMap, KILLS, 0, 50);
         setAttributeBounds(attributeMap, LIVES, -1, 3);
@@ -100,7 +102,7 @@ public class DomainDefinition {
         new Collision(domain, new String[]{ALIEN_CLASS, SHIP_CLASS});
         //Add Alien against wall checks for direction change
         //new AgainstWall(domain);
-        //Check for tings off the map
+        //Check for things off the map
         new OffMap(domain, ALIEN_CLASS);
         new OffMap(domain, BULLET_CLASS);
         new OffMap(domain, MISSILE_CLASS);
@@ -110,20 +112,19 @@ public class DomainDefinition {
 
     public static State getInitialState(Domain d, int actualPNum) {
         State s = new State();
-        addMeta(d, s, 1, 3, 0, actualPNum);
-        addShip(d, s, 0, MetaData.MAP_WIDTH / 2, -1, -1, 0, 0, 2, -1);
-        addShip(d, s, 1, MetaData.MAP_WIDTH / 2, -1, -1, 0, 0, 2, -1);
+        addMeta(d, s, 1, 3, actualPNum);
+        addShip(d, s, 0, MetaData.MAP_WIDTH / 2, -2, -2, 0, 0, 3, -1, 0, actualPNum);
+        addShip(d, s, 1, MetaData.MAP_WIDTH / 2, -2, -2, 0, 0, 3, -1, 0, actualPNum);
         addAlienWave(d, s, 0, 3, actualPNum);
         addAlienWave(d, s, 1, 3, actualPNum);
         addInitialShields(d, s);
         return s;
     }
 
-    private static ObjectInstance addMeta(Domain d, State s, int roundNum, int waveSize, int alienShotEnergy, int actualPNum) {
+    private static ObjectInstance addMeta(Domain d, State s, int roundNum, int waveSize, int actualPNum) {
         ObjectInstance meta = new ObjectInstance(d.getObjectClass(META_CLASS), "MetaData");
         meta.setValue(ROUND_NUM, roundNum);
         meta.setValue(ALIEN_WAVE_SIZE, waveSize);
-        meta.setValue(ALIEN_SHOT_ENERGY, alienShotEnergy);
         meta.setValue(ACTUAL_PNUM, actualPNum);
         s.addObject(meta);
         return meta;
@@ -147,7 +148,7 @@ public class DomainDefinition {
      * @param x - the x-pos of the middle of the ship
      */
     public static ObjectInstance addShip(Domain d, State s, int playerNum, int x, int missileController, int alienFactory, int missileCount,
-                                         int kills, int lives, int respawn_time) {
+                                         int kills, int lives, int respawn_time, int alienShotEnergy, int actualPNum) {
         ObjectInstance ship = new ObjectInstance(d.getObjectClass(SHIP_CLASS), SHIP_CLASS + playerNum);
         ship.setValue(X, x);
         ship.setValue(Y, playerNum==0? 1 : MetaData.MAP_HEIGHT-2);
@@ -159,6 +160,8 @@ public class DomainDefinition {
         ship.setValue(KILLS, kills);
         ship.setValue(LIVES, lives);
         ship.setValue(RESPAWN_TIME, respawn_time);
+        ship.setValue(ALIEN_SHOT_ENERGY, alienShotEnergy);
+        ship.setValue(DELTA_X, actualPNum==0? -1 : 1);
         s.addObject(ship);
         return ship;
     }

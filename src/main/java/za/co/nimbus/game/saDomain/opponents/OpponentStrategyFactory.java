@@ -11,8 +11,14 @@ public class OpponentStrategyFactory {
         switch (opponentClass) {
             case "RunAndHide":
                 return new RunAndHide(d);
+            case "Foxhole":
+                return new Foxhole(d);
             case "SittingDuck":
                 return new SittingDuck(d);
+            case "Feynman0":
+                return new Feynman(0);
+            case "Feynman1":
+                return new Feynman(1);
         }
         throw new IllegalArgumentException(opponentClass + ": No opponent class of this name is registered");
     }

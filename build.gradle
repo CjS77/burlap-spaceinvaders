@@ -14,7 +14,7 @@ dependencies {
     // The production code uses the SLF4J logging API at compile time
     //compile 'org.slf4j:slf4j-api:1.5.6'
     //compile 'org.slf4j:slf4j-capi:1.5.6'
-    compile 'com.github.CjS77:burlap:b4d0d19'
+    compile 'com.github.CjS77:burlap:b014905'
     compile 'com.fasterxml.jackson.core:jackson-core:2.6.0'
     compile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.0'
@@ -33,18 +33,21 @@ jar {
     }
 }
 
-task(runVisualise, group: 'execute', description: 'Run an interactive version of the Space Invader game',
+task(runVisualise, group: 'execute', description: 'Run an interactive version of the Space Invader game as Player 1',
         dependsOn: 'classes', type: JavaExec) {
     main = 'za.co.nimbus.game.InteractiveGame'
     classpath = sourceSets.main.runtimeClasspath
-    args = ["SittingDuck", "0"]
+    args = ["Foxhole", "0"]
 }
 
 task(trainAgent, group: 'execute', description: 'Train the Agent with the given learning algorithm',
         dependsOn: 'classes', type: JavaExec) {
     jvmArgs '-Xmx4g'
     main = 'za.co.nimbus.game.SpaceCamp'
-    args = ["RunAndHide", "0"]
+    def numEpisodes = project.hasProperty('nEps')? nEps : 100
+    def oppStrategy = project.hasProperty('opp')? opp : "SittingDuck"
+    def pNum = project.hasProperty('pNum')? pNum : "0"
+    args = [oppStrategy, pNum, numEpisodes]
     classpath = sourceSets.main.runtimeClasspath
 }
 
