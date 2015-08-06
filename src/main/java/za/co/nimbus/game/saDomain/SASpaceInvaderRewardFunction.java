@@ -22,10 +22,10 @@ import static za.co.nimbus.game.constants.Commands.BuildAlienFactory;
  *
  */
 public class SASpaceInvaderRewardFunction implements RewardFunction {
-    public static final double WIN_REWARD = 200.0;
-    public static final double LOSE_REWARD = -200.0;
-    public static final double KILL_REWARD = 8.0;
-    public static final double DIED_COST = 20.0;
+    public static final double WIN_REWARD = 100.0;
+    public static final double LOSE_REWARD = 0.0;
+    public static final double KILL_REWARD = 10.0;
+    public static final double DIED_COST = 10.0;
     public static final double SURVIVAL_REWARD = 1.0;
     private final GameOver tf;
 
@@ -57,8 +57,8 @@ public class SASpaceInvaderRewardFunction implements RewardFunction {
         int[] result = new int[2];
         result[0] = ship_t1.getIntValForAttribute(KILLS) - ship_t0.getIntValForAttribute(KILLS);
         result[1] = ship_t1.getIntValForAttribute(LIVES) - ship_t0.getIntValForAttribute(LIVES);
-        //Don't penalise for building
-        if (action.equals(BuildShield) || action.equals(BuildAlienFactory) || action.equals(BuildMissileController))
+        //Don't penalise for building MissileController
+        if (action.equals(BuildMissileController))
             result[1] ++;
         return result;
     }

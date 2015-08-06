@@ -64,7 +64,7 @@ public class SpaceCamp {
         double λ = 0.9;
         double learning_rate = 0.01;
         double γ = 0.99;
-        double ε = 0.2;
+        double ε = 0.05;
         String pFile =  "SIHeuristicsP" + pNumActual;
         SpaceInvaderHeuristics2 fd = new SpaceInvaderHeuristics2(pFile+".bin", 0.0);
         ValueFunctionApproximation vfa = fd.generateVFA();
