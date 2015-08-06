@@ -1,12 +1,9 @@
 package za.co.nimbus.game;
 
-import burlap.behavior.singleagent.auxiliary.performance.PerformanceMetric;
-import burlap.behavior.singleagent.auxiliary.performance.TrialMode;
 import burlap.behavior.statehashing.DiscreteStateHashFactory;
 import burlap.behavior.statehashing.StateHashFactory;
 import burlap.behavior.stochasticgame.GameAnalysis;
 import burlap.behavior.stochasticgame.auxiliary.performance.AgentFactoryAndType;
-import burlap.behavior.stochasticgame.auxiliary.performance.MultiAgentExperimenter;
 import burlap.oomdp.auxiliary.StateParser;
 import burlap.oomdp.auxiliary.common.StateJSONParser;
 import burlap.oomdp.core.Domain;
@@ -17,14 +14,11 @@ import burlap.oomdp.stochasticgames.common.VisualWorldObserver;
 import za.co.nimbus.game.agents.RunAndHide;
 import za.co.nimbus.game.agents.SpaceInvaderAgentFactory;
 import za.co.nimbus.game.rules.GameOver;
-import za.co.nimbus.game.rules.SimpleSpaceInvaderState;
 import za.co.nimbus.game.rules.SpaceInvaderRewardFunction;
 import za.co.nimbus.game.visualiser.SpaceInvaderVisualiser;
 import za.co.nimbus.game.world.DomainDefinition;
 import za.co.nimbus.game.world.SpaceInvaderDomainFactory;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -31,7 +31,7 @@ public class VFAFile {
             return false;
         }
         try {
-            vfa.resetWeights();
+            //vfa.resetWeights();  Only overwrite weights in the file. Allows expansion of feature set
             int len = fis.readInt();
             for (int i=0; i<len; i++) {
                 int id = fis.readInt();

@@ -4,16 +4,17 @@ import burlap.behavior.singleagent.Policy;
 import burlap.behavior.singleagent.ValueFunctionInitialization;
 import burlap.behavior.singleagent.planning.commonpolicies.GreedyQPolicy;
 import burlap.behavior.singleagent.planning.stochastic.sparsesampling.SparseSampling;
+import burlap.behavior.singleagent.vfa.ValueFunctionApproximation;
 import burlap.behavior.statehashing.DiscreteStateHashFactory;
 import burlap.oomdp.core.AbstractGroundedAction;
 import burlap.oomdp.core.State;
 import burlap.oomdp.singleagent.Action;
 import burlap.oomdp.singleagent.RewardFunction;
-import za.co.nimbus.game.heuristics.PersistentLinearVFA;
-import za.co.nimbus.game.heuristics.SpaceInvaderFeatures;
+import za.co.nimbus.game.heuristics.SpaceInvaderHeuristics2;
 import za.co.nimbus.game.heuristics.ValueInitializationFromVFA;
 import za.co.nimbus.game.rules.GameOver;
-import za.co.nimbus.game.saDomain.*;
+import za.co.nimbus.game.saDomain.SASpaceInvaderRewardFunction;
+import za.co.nimbus.game.saDomain.SpaceInvaderSingleAgentDomainFactory;
 
 /**
  * Use the Sarsa-λ and sparse Sampling strategies learnt by primary AI
@@ -38,10 +39,10 @@ public class Feynman extends AbstractOpponent {
     @Override
     public void init(SpaceInvaderSingleAgentDomainFactory spaceInvaderDomainFactory) {
         //Load the VFA coefficients file
-        String vfaCoeffFile = "SpaceInvaderFeaturesVFAp" + actualPNum + ".bin";
-        SpaceInvaderFeatures fd = new SpaceInvaderFeatures();
-        PersistentLinearVFA vfa = new PersistentLinearVFA(fd);
-        vfa.loadFromFile(vfaCoeffFile);
+        String vfaCoeffFile = "SIHeuristics2p" + actualPNum + ".bin";
+        SpaceInvaderHeuristics2 fd = new SpaceInvaderHeuristics2();
+        fd.setVFAWeightFile(vfaCoeffFile);
+        ValueFunctionApproximation vfa = fd.generateVFA();
         //Create the domain
         GameOver tf = new GameOver(domain);
         RewardFunction rf = new SASpaceInvaderRewardFunction(tf);

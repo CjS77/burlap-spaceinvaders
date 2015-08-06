@@ -22,11 +22,11 @@ import static za.co.nimbus.game.constants.Commands.BuildAlienFactory;
  *
  */
 public class SASpaceInvaderRewardFunction implements RewardFunction {
-    private static final double WIN_REWARD = 100.0;
-    private static final double LOSE_REWARD = -100.0;
-    private static final double KILL_REWARD = 5.0;
-    private static final double DIED_COST = 10.0;
-    private static final double SURVIVAL_REWARD = 0.0;
+    public static final double WIN_REWARD = 200.0;
+    public static final double LOSE_REWARD = -200.0;
+    public static final double KILL_REWARD = 8.0;
+    public static final double DIED_COST = 20.0;
+    public static final double SURVIVAL_REWARD = 1.0;
     private final GameOver tf;
 
     public SASpaceInvaderRewardFunction(GameOver tf) {

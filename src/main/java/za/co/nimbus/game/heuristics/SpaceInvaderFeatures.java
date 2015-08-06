@@ -3,6 +3,7 @@ package za.co.nimbus.game.heuristics;
 import burlap.behavior.singleagent.vfa.ActionFeaturesQuery;
 import burlap.behavior.singleagent.vfa.FeatureDatabase;
 import burlap.behavior.singleagent.vfa.StateFeature;
+import burlap.behavior.singleagent.vfa.common.LinearVFA;
 import burlap.oomdp.core.ObjectInstance;
 import burlap.oomdp.core.State;
 import burlap.oomdp.singleagent.GroundedAction;
@@ -20,6 +21,7 @@ import static za.co.nimbus.game.constants.ObjectClasses.*;
 /**
  * A handrolled feature database for the Space Invaders domain
  */
+@Deprecated
 public class SpaceInvaderFeatures implements FeatureDatabase {
     public static final String coeff_file = "SpaceInvaderFeaturesVFA";
     public static final int LEFT_SHIELD = 4;
@@ -77,13 +79,14 @@ public class SpaceInvaderFeatures implements FeatureDatabase {
      * @param defaultWeightValue the default feature weight value to use for all features
      * @return a linear VFA object over this RBF feature database.
      */
-    public PersistentLinearVFA generateVFA(double defaultWeightValue, int pNum)
+    public LinearVFA generateVFA(double defaultWeightValue, int pNum)
     {
         File f = new File(coeff_file + "p" + pNum + ".bin");
         long t0 = System.currentTimeMillis();
-        PersistentLinearVFA vfa = new PersistentLinearVFA(this, defaultWeightValue);
+
+        LinearVFA vfa = new LinearVFA(this, defaultWeightValue);
         if (f.exists()) {
-            vfa.loadFromFile(f.getPath());
+            VFAFile.loadFromFile(vfa, f.getAbsolutePath());
             long t1 = System.currentTimeMillis();
             System.out.println("Loading coeffs took " + (t1 - t0) + "ms\n");
         }

@@ -36,8 +36,7 @@ public class SpaceInvaderDomainFactory implements DomainGenerator {
         mAttributesToHash.clear();
         DomainDefinition.initAttributes(domain, attributeMap);
         defineClasses(domain, mAttributesToHash);
-        //defineActions(domain);
-        defineSimpleActions(domain);
+        defineActions(domain);
         DomainDefinition.defineInteractions(domain);
         domain.setJointActionModel(new SpaceInvaderJAM(domain, seed));
         return domain;
@@ -62,16 +61,6 @@ public class SpaceInvaderDomainFactory implements DomainGenerator {
         actionList.add(new ShipAction(domain, BuildShield));
     }
 
-    private void defineSimpleActions(SGDomain domain) {
-        actionList.clear();
-        actionList.add(new SimpleShipAction(domain, MoveLeft));
-        actionList.add(new SimpleShipAction(domain, Nothing));
-        actionList.add(new SimpleShipAction(domain, MoveRight));
-        actionList.add(new SimpleShipAction(domain, Shoot));
-        actionList.add(new SimpleShipAction(domain, BuildAlienFactory));
-        actionList.add(new SimpleShipAction(domain, BuildMissileController));
-        actionList.add(new SimpleShipAction(domain, BuildShield));
-    }
 
     private void defineClasses(Domain domain, Map<String, List<Attribute>> attributesToHash) {
         //Meta data
@@ -94,10 +83,6 @@ public class SpaceInvaderDomainFactory implements DomainGenerator {
         atts = new String[] {X, Y, WIDTH};
         hashed = new boolean[]{true, true, false};
         DomainDefinition.initClass(domain, SHIELD_CLASS, attributesToHash, atts, hashed, attributeMap);
-        //Simple State
-        atts = new String[] {IS_BEHIND_SHIELDS, DANGER_LEVEL, AT_LEFT_WALL, AT_RIGHT_WALL, CAN_SHOOT, P1_LIVES, P2_LIVES};
-        hashed = new boolean[]{true, true, true, true, true, true, true};
-        DomainDefinition.initClass(domain, SIMPLE_STATE_CLASS, attributesToHash, atts, hashed, attributeMap);
     }
 
     public AgentType createDefaultAgentType(Domain d) {
