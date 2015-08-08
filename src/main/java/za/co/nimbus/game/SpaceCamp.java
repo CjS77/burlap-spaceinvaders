@@ -15,6 +15,7 @@ import burlap.oomdp.visualizer.Visualizer;
 import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.heuristics.SpaceInvaderFeatures;
 import za.co.nimbus.game.heuristics.SpaceInvaderHeuristics2;
+import za.co.nimbus.game.heuristics.SpaceInvaderHeuristics3;
 import za.co.nimbus.game.heuristics.VFAFile;
 import za.co.nimbus.game.rules.GameOver;
 import za.co.nimbus.game.saDomain.*;
@@ -62,20 +63,26 @@ public class SpaceCamp {
         SADomain d = initGame(oppStrat, null);
         State s0 = DomainDefinition.getInitialState(d, pNumActual);
         double λ = 0.9;
-        double learning_rate = 0.01;
-        double γ = 0.99;
-        double ε = 0.05;
+        double learning_rate = 0.005;
+        double γ = 1.0;
+        double ε = 0.1;
+        DPrint.cf(0, "Learning parameters:\n\tγ = %5.3f\n\tα = %5.3f\n\tλ = %4.2f\n\tε = %4.2f\n", γ, learning_rate, λ, ε);
         String pFile =  "SIHeuristicsP" + pNumActual;
-        SpaceInvaderHeuristics2 fd = new SpaceInvaderHeuristics2(pFile+".bin", 0.0);
+        SpaceInvaderHeuristics3 fd = new SpaceInvaderHeuristics3(pFile+".bin", 0.0, d);
         ValueFunctionApproximation vfa = fd.generateVFA();
         GradientDescentSarsaLam sarsa = new GradientDescentSarsaLam(d, rf, tf, γ, vfa, learning_rate, null, 201, λ);
         sarsa.setLearningPolicy(new EpsilonGreedy(sarsa, ε));
         StateParser sp = new StateJSONParser(d);
+        double Rcum = 0.0;
+        int PER = 1000;
         for(int i = 0; i < numEpisodes; i++){
             EpisodeAnalysis ea = sarsa.runLearningEpisodeFrom(s0); //run learning episode
-            System.out.printf(".");
-            if ( (10*i)%numEpisodes == 0) {
-                System.out.printf("\n%d games simulated\n", i);
+            double R = ea.getDiscountedReturn(γ);
+            Rcum += R;
+            System.out.printf(R > 0? "o" : ".");
+            if (i%PER == 0) {
+                System.out.printf("\n%d games simulated\nAverage Return over period: %5.2f\n", i, Rcum/PER);
+                Rcum = 0;
                 ea.writeToFile(String.format("sarsa%d/e%04d", pNumActual, i), sp); //record episode to a file
                 VFAFile.saveVFAToASCIIFile(vfa, pFile+".txt", s0, d, fd);
                 VFAFile.saveVFAToFile(vfa, pFile+".bin", s0, d, fd);
@@ -85,6 +92,7 @@ public class SpaceCamp {
                 }
             }
         }
+        System.out.println("\nLearning complete");
         VFAFile.saveVFAToASCIIFile(vfa, pFile+".txt", s0, d, fd);
         VFAFile.saveVFAToFile(vfa, pFile+".bin", s0, d, fd);
         Visualizer v = SpaceInvaderVisualiser.getVisualiser();

@@ -57,6 +57,17 @@ public class SpaceInvaderMechanics {
         return state;
     }
 
+    /**
+     * A simplified simulation, only moving aliens and missiles
+     */
+    public static State simulateAliensShipOnly(Domain d, State state, String move) {
+        ObjectInstance ship = state.getObject(SHIP_CLASS + "0");
+        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(d, state, 1, state.getObject(SHIP_CLASS + "1"));
+        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(d, state, 0, ship);
+        handleShipCommand(d, 0, move, state);
+        return state;
+    }
+
     public static State advanceGameByOneRound(Domain domain, State state, String myMove, String opponentMove) {
         Set<ObjectInstance> deadEntities = new HashSet<>();
         state = updateEnvironmentPreAlienShoot(domain, state, deadEntities);
@@ -341,7 +352,7 @@ public class SpaceInvaderMechanics {
         }
     }
 
-    private static void moveProjectiles(State state, String objectClass) {
+    public static void moveProjectiles(State state, String objectClass) {
         List<ObjectInstance> missiles = state.getObjectsOfClass(objectClass);
         for (ObjectInstance missile : missiles) {
             int y = missile.getIntValForAttribute(Y);
@@ -366,6 +377,7 @@ public class SpaceInvaderMechanics {
     public static State handleShipCommand(Domain d, int pNum, String command, State state) {
         ObjectInstance ship = state.getObject(SHIP_CLASS + pNum);
         Location shipLoc = Location.getObjectLocation(ship);
+        if (shipLoc.x < 0) return state;
         switch (command) {
             case MoveLeft:
                 if (pNum == 0) decAttribute(ship, X);
@@ -638,6 +650,7 @@ public class SpaceInvaderMechanics {
     private static void freezePlayer(ObjectInstance ship) {
         if (isFrozen(ship)) {
             DPrint.cl(DEBUG_CODE, "Hmm. Trying to freeze an already frozen ship. This should not happen");
+            DPrint.cl(DEBUG_CODE, ship.getObjectDescription());
         }
         //Move off the map
         ship.setValue(X, -3);

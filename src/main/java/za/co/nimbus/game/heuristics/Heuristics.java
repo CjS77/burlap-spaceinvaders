@@ -1,12 +1,18 @@
 package za.co.nimbus.game.heuristics;
 
+import burlap.behavior.singleagent.vfa.ActionFeaturesQuery;
 import burlap.behavior.singleagent.vfa.FeatureDatabase;
+import burlap.behavior.singleagent.vfa.StateFeature;
 import burlap.behavior.singleagent.vfa.ValueFunctionApproximation;
 import burlap.behavior.singleagent.vfa.common.LinearVFA;
 import burlap.debugtools.DPrint;
+import burlap.oomdp.core.Domain;
 import burlap.oomdp.core.State;
+import burlap.oomdp.singleagent.GroundedAction;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,14 +30,60 @@ public abstract class Heuristics implements FeatureDatabase {
     public static final int DEBUG_CODE = 770618011;
     private String vfaWeightfile = null;
     private double defaultWeightValue;
+    protected final HashMap<Integer, StateFeature> stateFeatureMap;
+    protected final List<StateFeature> stateFeatures;
 
     public Heuristics() {
         this(null, 0.0);
-    };
+    }
 
     public Heuristics(String filename, double defaultWeightValue) {
         this.vfaWeightfile = filename;
         this.defaultWeightValue = defaultWeightValue;
+        stateFeatureMap = new HashMap<>();
+        stateFeatures = new ArrayList<>();
+    }
+
+    protected final StateFeature higherOrderFeature(int actionCode, int... featureIDs) {
+        int id = actionCode;
+        double val = 1.0;
+        for (int i=0; i< featureIDs.length; i++) {
+            id += ipower(50, i)*featureIDs[i];
+            val *= getFeature(featureIDs[i]).value;
+        }
+        return new StateFeature(id, val);
+    }
+
+    protected final StateFeature stateToActionFeature(int actionCode, int featureId) {
+        return new StateFeature(actionCode + featureId, getFeature(featureId).value);
+    }
+
+    protected final StateFeature getFeature(int id) {
+        StateFeature result = stateFeatureMap.get(id);
+        if (result == null) {
+            result = stateFeatures.stream().filter(
+                    f -> f.id == id
+            ).findFirst().get();
+            stateFeatureMap.put(id, result);
+        }
+        return result;
+    }
+
+    protected final void addStateActionFeatures(List<StateFeature> actionFeatures, int actionOffset, int... ids) {
+        for (int id : ids) {
+            actionFeatures.add(stateToActionFeature(actionOffset, id));
+        }
+    }
+
+    /**
+     * Calulates b^x
+     */
+    protected static int ipower(int b, int x) {
+        int result = 1;
+        for (int i=0; i<x; i++) {
+            result *= b;
+        }
+        return result;
     }
 
     /**

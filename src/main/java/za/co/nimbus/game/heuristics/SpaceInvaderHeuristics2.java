@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.MetaData.MAP_HEIGHT;
+import static za.co.nimbus.game.constants.MetaData.MAP_WIDTH;
 import static za.co.nimbus.game.constants.ObjectClasses.*;
 import static za.co.nimbus.game.constants.Commands.*;
 import static za.co.nimbus.game.saDomain.SASpaceInvaderRewardFunction.*;
@@ -41,18 +42,27 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
     private static final int SHIELDS_WILL_BLOCK_PROJECTILE = 14;
     private static final int SHIELDS_WILL_EXPLODE_ALIEN = 15;
     private static final int SHIELDS_WILL_DEFEND_BUILDING = 16;
+    private static final int ALIEN_RANGE_WAIT = 17;
+    private static final int ENEMY_OFFSET_LEFT = 18;
+    private static final int ENEMY_OFFSET_RIGHT = 19;
+    private static final int ENEMY_MC_OFFSET_RIGHT = 20;
+    private static final int ENEMY_MC_OFFSET_LEFT = 21;
+    private static final int ENEMY_AF_OFFSET_LEFT = 22;
+    private static final int ENEMY_AF_OFFSET_RIGHT = 23;
+
     private static final int CONSTANT = 64;
     //Action flags
-    private static final int NOTHING = 1000;
-    private static final int MOVE_LEFT = 2000;
-    private static final int MOVE_RIGHT = 3000;
-    private static final int SHOOT = 4000;
-    private static final int BUILD_MC = 5000;
-    private static final int BUILD_AF = 6000;
-    private static final int BUILD_SHIELDS = 7000;
+    private static final int NOTHING    = 1000000;
+    private static final int MOVE_LEFT  = 2000000;
+    private static final int MOVE_RIGHT = 3000000;
+    private static final int SHOOT      = 4000000;
+    private static final int BUILD_MC   = 5000000;
+    private static final int BUILD_AF   = 6000000;
+    private static final int BUILD_SHIELDS = 7000000;
+
     final int RADAR_RANGE = 3;
-    private final HashMap<Integer, StateFeature> stateFeatureMap;
-    private final List<StateFeature> stateFeatures;
+    private static final double DMAP_HEIGHT = (double) MAP_HEIGHT;
+
 
     public SpaceInvaderHeuristics2() {
         this(null, 0.0);
@@ -60,8 +70,6 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
 
     public SpaceInvaderHeuristics2(String filename, double defaultWeightValue) {
         super(filename, defaultWeightValue);
-        stateFeatureMap = new HashMap<>();
-        stateFeatures = new ArrayList<>();
     }
 
     @Override
@@ -83,8 +91,9 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
         // Shooting features
         stateFeatures.add(new StateFeature(CAN_SHOOT, canFireMetric(ship)));
         stateFeatures.add(new StateFeature(ALIEN_RANGE, getFireMetric(s, ship)));
-        stateFeatures.add(new StateFeature(ALIEN_RANGE_LEFT, getFireMetricIfMoveLeft(s, ship)));
-        stateFeatures.add(new StateFeature(ALIEN_RANGE_RIGHT, getFireMetricIfMoveRight(s, ship)));
+        stateFeatures.add(new StateFeature(ALIEN_RANGE_LEFT, getFireMetricForMove(s, ship, -1)));
+        stateFeatures.add(new StateFeature(ALIEN_RANGE_RIGHT, getFireMetricForMove(s, ship, 1)));
+        stateFeatures.add(new StateFeature(ALIEN_RANGE_WAIT, getFireMetricForMove(s, ship, 0)));
         stateFeatures.add(new StateFeature(WILL_HIT_PROJECTILE_IF_FIRE, willHitProjectileIfFire(shields, radar)));
         stateFeatures.add(new StateFeature(WILL_HIT_ENEMY_SHIELD_IF_FIRE, willHitEnemyShieldIfFire(s, ship)));
         stateFeatures.add(new StateFeature(WILL_HIT_ENEMY_BUILDING_IF_FIRE, willHitEnemyBuildingIfFire(s, ship)));
@@ -95,6 +104,16 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
         // Building features
         stateFeatures.add(new StateFeature(LIVES_LEFT, ship.getIntValForAttribute(LIVES)));
         stateFeatures.add(new StateFeature(BUILDING_COVER, getBuildingCover(shipX, s)));
+        // Geography
+        int enemyDX = getEnemyDX(s, shipX);
+        int mcDX = getEnemyMCDX(s, shipX, MISSILE_CONTROL);
+        int afDX = getEnemyMCDX(s, shipX, ALIEN_FACTORY);
+        stateFeatures.add(new StateFeature(ENEMY_OFFSET_LEFT, getOffsetLeftMetric(enemyDX)));
+        stateFeatures.add(new StateFeature(ENEMY_OFFSET_RIGHT, getOffsetRightMetric(enemyDX)));
+        stateFeatures.add(new StateFeature(ENEMY_MC_OFFSET_LEFT, getOffsetLeftMetric(mcDX)));
+        stateFeatures.add(new StateFeature(ENEMY_MC_OFFSET_RIGHT, getOffsetRightMetric(mcDX)));
+        stateFeatures.add(new StateFeature(ENEMY_AF_OFFSET_LEFT, getOffsetLeftMetric(afDX)));
+        stateFeatures.add(new StateFeature(ENEMY_AF_OFFSET_RIGHT, getOffsetRightMetric(afDX)));
         return stateFeatures;
     }
 
@@ -110,25 +129,65 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
                 case Nothing:
                     actionFeatures.add(stateToActionFeature(NOTHING, CONSTANT));
                     actionFeatures.add(stateToActionFeature(NOTHING, WILL_DIE_IF_STATIONARY));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ALIEN_RANGE_WAIT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ALIEN_RANGE_LEFT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ALIEN_RANGE_RIGHT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ALIEN_RANGE));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ENEMY_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ENEMY_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ENEMY_MC_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ENEMY_MC_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ENEMY_AF_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(NOTHING, ENEMY_AF_OFFSET_RIGHT));
+                    actionFeatures.add(higherOrderFeature(NOTHING, CAN_SHOOT, ALIEN_RANGE_WAIT));
                     break;
                 case MoveLeft:
                     actionFeatures.add(stateToActionFeature(MOVE_LEFT, CONSTANT));
                     actionFeatures.add(stateToActionFeature(MOVE_LEFT, WILL_DIE_IF_MOVELEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ALIEN_RANGE_WAIT));
                     actionFeatures.add(stateToActionFeature(MOVE_LEFT, ALIEN_RANGE_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ALIEN_RANGE_RIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ALIEN_RANGE));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ENEMY_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ENEMY_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ENEMY_MC_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ENEMY_MC_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ENEMY_AF_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_LEFT, ENEMY_AF_OFFSET_RIGHT));
+                    actionFeatures.add(higherOrderFeature(MOVE_LEFT, CAN_SHOOT, ALIEN_RANGE_LEFT));
                     break;
                 case MoveRight:
                     actionFeatures.add(stateToActionFeature(MOVE_RIGHT, CONSTANT));
                     actionFeatures.add(stateToActionFeature(MOVE_RIGHT, WILL_DIE_IF_MOVERIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ALIEN_RANGE_WAIT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ALIEN_RANGE_LEFT));
                     actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ALIEN_RANGE_RIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ALIEN_RANGE));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ENEMY_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ENEMY_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ENEMY_MC_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ENEMY_MC_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ENEMY_AF_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(MOVE_RIGHT, ENEMY_AF_OFFSET_RIGHT));
+                    actionFeatures.add(higherOrderFeature(MOVE_RIGHT, CAN_SHOOT, ALIEN_RANGE_RIGHT));
                     break;
                 case Shoot:
                     actionFeatures.add(stateToActionFeature(SHOOT, CONSTANT));
                     actionFeatures.add(stateToActionFeature(SHOOT, CAN_SHOOT));
-                    actionFeatures.add(stateToActionFeature(SHOOT, ALIEN_RANGE));
                     actionFeatures.add(stateToActionFeature(SHOOT, GOT_MIDDLE_SHIELD));
                     actionFeatures.add(stateToActionFeature(SHOOT, WILL_HIT_PROJECTILE_IF_FIRE));
                     actionFeatures.add(stateToActionFeature(SHOOT, WILL_HIT_ENEMY_SHIELD_IF_FIRE));
                     actionFeatures.add(stateToActionFeature(SHOOT, WILL_HIT_ENEMY_BUILDING_IF_FIRE));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ALIEN_RANGE_WAIT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ALIEN_RANGE_LEFT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ALIEN_RANGE_RIGHT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ALIEN_RANGE));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ENEMY_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ENEMY_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ENEMY_MC_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ENEMY_MC_OFFSET_RIGHT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ENEMY_AF_OFFSET_LEFT));
+                    actionFeatures.add(stateToActionFeature(SHOOT, ENEMY_AF_OFFSET_RIGHT));
                     break;
                 case BuildAlienFactory:
                     actionFeatures.add(stateToActionFeature(BUILD_AF, CONSTANT));
@@ -155,50 +214,34 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
         return result;
     }
 
+
+
     @Override
     protected Map<Integer, Double> createInitialWeightMap() {
         Map<Integer, Double> result = new HashMap<>();
-        result.put(NOTHING + CONSTANT, 0.0);
-        result.put(NOTHING + WILL_DIE_IF_STATIONARY, -0.8*DIED_COST);
-        result.put(MOVE_LEFT + CONSTANT, 0.0);
-        result.put(MOVE_LEFT + WILL_DIE_IF_MOVELEFT, -0.8*DIED_COST);
-        result.put(MOVE_LEFT + ALIEN_RANGE_LEFT, 0.8*KILL_REWARD);
-        result.put(MOVE_RIGHT + CONSTANT, 0.0);
-        result.put(MOVE_RIGHT + WILL_DIE_IF_MOVERIGHT, -0.8*DIED_COST);
-        result.put(MOVE_RIGHT + ALIEN_RANGE_RIGHT, 0.8*KILL_REWARD);
-        result.put(SHOOT + CONSTANT, 1.0);
-        result.put(SHOOT + CAN_SHOOT, 1.0);
-        result.put(SHOOT + ALIEN_RANGE, KILL_REWARD);
-        result.put(SHOOT + GOT_MIDDLE_SHIELD, -4.0);
-        result.put(SHOOT + WILL_HIT_PROJECTILE_IF_FIRE, 1.0);
-        result.put(SHOOT + WILL_HIT_ENEMY_SHIELD_IF_FIRE, 0.5);
-        result.put(SHOOT + WILL_HIT_ENEMY_BUILDING_IF_FIRE, 0.5*KILL_REWARD);
-        result.put(BUILD_AF + CONSTANT, -6.0);
-        result.put(BUILD_AF + LIVES_LEFT, 2.0);
-        result.put(BUILD_AF + BUILDING_COVER, 5.0);
-        result.put(BUILD_MC + CONSTANT, -6.0);
-        result.put(BUILD_MC + LIVES_LEFT, 2.0);
-        result.put(BUILD_MC + BUILDING_COVER, 10.0);
-        result.put(BUILD_SHIELDS + CONSTANT, -10.0);
-        result.put(BUILD_SHIELDS + LIVES_LEFT, 2.0);
-        result.put(BUILD_SHIELDS + SHIELDS_WILL_BLOCK_PROJECTILE, 1.0);
-        result.put(BUILD_SHIELDS + SHIELDS_WILL_EXPLODE_ALIEN, 0.8*LOSE_REWARD);
-        result.put(BUILD_SHIELDS + SHIELDS_WILL_DEFEND_BUILDING, 10.0);
         return result;
     }
 
-    private StateFeature getFeature(int id) {
-        StateFeature result = stateFeatureMap.get(id);
-        if (result == null) {
-            result = stateFeatures.stream().filter(
-                    f -> f.id == id
-            ).findFirst().get();
-            stateFeatureMap.put(id, result);
-        }
-        return result;
+
+
+
+    private double getOffsetLeftMetric(int dx) {
+        return dx < 0? 1 + dx/DMAP_HEIGHT: 0.0;
     }
-    private StateFeature stateToActionFeature(int actionCode, int featureId) {
-        return new StateFeature(actionCode + featureId, getFeature(featureId).value);
+
+    private double getOffsetRightMetric(int dx) {
+        return dx > 0? 1 - dx/DMAP_HEIGHT: 0.0;
+    }
+
+    private int getEnemyMCDX(State s, int shipX, String building) {
+        ObjectInstance enemy = s.getObject(SHIP_CLASS + "1");
+        int mcx = enemy.getIntValForAttribute(building);
+        return mcx >= 0? mcx - shipX : MAP_WIDTH + 1;
+    }
+
+    private int getEnemyDX(State s, int shipX) {
+        ObjectInstance enemy = s.getObject(SHIP_CLASS + "1");
+        return enemy.getIntValForAttribute(X) - shipX;
     }
 
     private double shieldsWillDefendBuilding(int shipX, ObjectInstance ship) {
@@ -299,27 +342,14 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
     /**
      * Simulates alien move and then calculates whether firing will strike. Makes deep copies of state and ship
      */
-    private double getFireMetricIfMoveLeft(State s, ObjectInstance ship) {
+    private double getFireMetricForMove(State s, ObjectInstance ship, int dx) {
         int shipX = ship.getIntValForAttribute(X);
-        //At left wall, can move left
-        if (shipX <= 1) return 0.0;
+        if (dx + shipX <= 0 || dx + shipX >= MAP_WIDTH - 1) return 0.0;
         State nextState = s.copy();
         ObjectInstance nextShip = ship.copy();
         List<ObjectInstance> aliens = nextState.getObjectsOfClass(ALIEN_CLASS);
         SpaceInvaderMechanics.moveAliens(nextState, 1, aliens, nextShip);
-        nextShip.setValue(X, shipX - 1);
-        return getFireMetric(nextState, nextShip);
-    }
-
-    private double getFireMetricIfMoveRight(State s, ObjectInstance ship) {
-        int shipX = ship.getIntValForAttribute(X);
-        //At RIGHT wall, can move left
-        if (shipX >= MetaData.MAP_WIDTH - 2) return 0.0;
-        State nextState = s.copy();
-        ObjectInstance nextShip = ship.copy();
-        List<ObjectInstance> aliens = nextState.getObjectsOfClass(ALIEN_CLASS);
-        SpaceInvaderMechanics.moveAliens(nextState, 1, aliens, nextShip);
-        nextShip.setValue(X, shipX + 1);
+        nextShip.setValue(X, shipX + dx);
         return getFireMetric(nextState, nextShip);
     }
 
@@ -394,7 +424,7 @@ public class SpaceInvaderHeuristics2 extends Heuristics {
      */
     private static double getFireMetric(State state, ObjectInstance ship) {
         int hitRange = willHitAlienIfShoot(state, ship);
-        return 2.0 - 2.0*hitRange/MAP_HEIGHT;
+        return 2.0 - 2.0*hitRange/DMAP_HEIGHT;
     }
 
     /**
