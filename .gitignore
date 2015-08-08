@@ -48,12 +48,11 @@ crashlytics.properties
 crashlytics-build.properties
 
 
-.gradle
 build
-gradle
 output
 sgVL
 sarsa
+.gradle
 
 SpaceCamp/
 sarsa0
