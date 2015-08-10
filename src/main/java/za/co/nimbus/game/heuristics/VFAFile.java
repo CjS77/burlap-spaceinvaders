@@ -79,7 +79,7 @@ public class VFAFile {
                 of.writeDouble(vfa.getFunctionWeight(id).weightValue());
             }
             of.close();
-            System.out.printf("VFA weights saved in %s\n", filename);
+            DPrint.cf(DEBUG_CODE, "VFA weights saved in %s\n", filename);
             return true;
         } catch(IOException ioe) {
             ioe.printStackTrace();
@@ -104,7 +104,7 @@ public class VFAFile {
                 }
             }
             of.close();
-            System.out.printf("VFA weight description saved in %s\n", filename);
+            DPrint.cf(DEBUG_CODE, "VFA weight description saved in %s\n", filename);
             return true;
         } catch(IOException ioe) {
             ioe.printStackTrace();

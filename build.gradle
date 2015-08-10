@@ -47,7 +47,10 @@ task(trainAgent, group: 'execute', description: 'Train the Agent with the given 
     def numEpisodes = project.hasProperty('nEps')? nEps : 100
     def oppStrategy = project.hasProperty('opp')? opp : "SittingDuck"
     def pNum = project.hasProperty('pNum')? pNum : "0"
-    args = [oppStrategy, pNum, numEpisodes]
+    def ε = project.hasProperty('epsilon')? epsilon : 0.1
+    def α = project.hasProperty('lrate')? lrate : 0.001
+
+    args = [oppStrategy, pNum, numEpisodes, ε, α]
     classpath = sourceSets.main.runtimeClasspath
 }
 
