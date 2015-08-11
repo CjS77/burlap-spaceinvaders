@@ -65,6 +65,11 @@ public class SpaceInvaderMechanics {
         SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(d, state, 1, state.getObject(SHIP_CLASS + "1"));
         SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(d, state, 0, ship);
         handleShipCommand(d, 0, move, state);
+        Set<ObjectInstance> deadEntities = new HashSet<>();
+        handleCollisionsAndRemoveDeadEntities(d, state, deadEntities);
+        for (ObjectInstance deadEntity : deadEntities) {
+            state.removeObject(deadEntity);
+        }
         return state;
     }
 

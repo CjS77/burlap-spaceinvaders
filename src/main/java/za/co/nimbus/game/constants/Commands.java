@@ -8,7 +8,4 @@ public final class Commands {
     public static final String BuildAlienFactory = "BuildAlienFactory";
     public static final String BuildMissileController = "BuildMissileController";
     public static final String BuildShield = "BuildShield";
-
-    public static final String[] allCommands = new String[] {Nothing, MoveLeft, MoveRight, Shoot, BuildAlienFactory,
-    BuildMissileController, BuildShield};
 }
