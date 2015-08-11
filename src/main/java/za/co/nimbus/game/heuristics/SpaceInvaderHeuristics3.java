@@ -242,28 +242,42 @@ public class SpaceInvaderHeuristics3 extends Heuristics {
         return bx > 0? bx : 0;
     }
 
-    private double getKillRange(State state, String[] moveSequence) {
+    private int getKillRange(State state, String[] moveSequence) {
         State s= state.copy();
-        double k = (double) (MAP_HEIGHT/2);
-        //Remove my existing missiles, to avoid false positives
-        List<ObjectInstance> missiles = s.getObjectsOfClass(MISSILE_CLASS);
-        missiles.forEach(s::removeObject);
-        missiles = s.getObjectsOfClass(BULLET_CLASS);
-        missiles.forEach(s::removeObject);
-        for (int i = 0; i < MAP_HEIGHT/2; i++){
+        Set<ObjectInstance> deadEntities = new HashSet<>();
+        ObjectInstance thisMissile = null;
+        for (int i = 0; i < 9; i++){
+            deadEntities.clear();
             SpaceInvaderMechanics.moveProjectiles(s, MISSILE_CLASS);
-            if (gotKill(s)) return 1.0 - i/k;
+            if (gotKill(s, thisMissile)) return i;
+            SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, s, deadEntities);
+            SpaceInvaderMechanics.moveProjectiles(s, BULLET_CLASS);
+            SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, s, deadEntities);
+            SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, s, 0, s.getObject(SHIP_CLASS+"0"));
+            SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, s, 1, s.getObject(SHIP_CLASS+"1"));
+            if (gotKill(s, thisMissile)) return i;
+            SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, s, deadEntities);
             String move = i < moveSequence.length? moveSequence[i] : Nothing;
-            s = SpaceInvaderMechanics.simulateAliensShipOnly(domain, s, move);
-            if (gotKill(s)) return 1.0 - i/k;
+            SpaceInvaderMechanics.updateEnvironmentPostAlienShoot(domain, s, move, Nothing, deadEntities);
+            if (move.equals(Shoot)) {
+                try {
+                    thisMissile = s.getObjectsOfClass(MISSILE_CLASS).stream().filter(
+                            m -> m.getIntValForAttribute(PNUM) == 0 && m.getIntValForAttribute(Y) == 2
+                    ).findFirst().get();
+                } catch (NoSuchElementException e) {
+                    return 1; //Missile hit on impact
+                }
+            }
+
         }
-        return 0.0; //Whiffed
+        return 0; //Whiffed
     }
 
-    private boolean gotKill(State s) {
+    private boolean gotKill(State s, ObjectInstance thisMissile) {
+        if (thisMissile == null) return false;
         PropositionalFunction pf = domain.getPropFunction(MISSILE_CLASS + ALIEN_CLASS + Collision.NAME);
         boolean hit = pf.getAllGroundedPropsForState(s).stream().filter(
-                gp -> s.getObject(gp.params[0]).getIntValForAttribute(PNUM) == 0
+                gp -> gp.params[0].equals(thisMissile.getName())
                         && s.getObject(gp.params[1]).getIntValForAttribute(PNUM) == 1
         ).anyMatch(
                 gp -> gp.isTrue(s)

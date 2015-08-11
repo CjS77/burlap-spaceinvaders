@@ -19,6 +19,10 @@ public class OpponentStrategyFactory {
                 return new Feynman(0);
             case "Feynman1":
                 return new Feynman(1);
+            case "Marx0":
+                return new Marx(0);
+            case "Marx1":
+                return new Marx(1);
         }
         throw new IllegalArgumentException(opponentClass + ": No opponent class of this name is registered");
     }

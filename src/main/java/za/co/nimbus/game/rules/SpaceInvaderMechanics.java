@@ -60,17 +60,11 @@ public class SpaceInvaderMechanics {
     /**
      * A simplified simulation, only moving aliens and missiles
      */
-    public static State simulateAliensShipOnly(Domain d, State state, String move) {
-        ObjectInstance ship = state.getObject(SHIP_CLASS + "0");
-        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(d, state, 1, state.getObject(SHIP_CLASS + "1"));
-        SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(d, state, 0, ship);
-        handleShipCommand(d, 0, move, state);
+    public static State simulateTurnWithoutAlienFire(Domain d, State state, String move) {
         Set<ObjectInstance> deadEntities = new HashSet<>();
+        state = updateEnvironmentPreAlienShoot(d, state, deadEntities);
         handleCollisionsAndRemoveDeadEntities(d, state, deadEntities);
-        for (ObjectInstance deadEntity : deadEntities) {
-            state.removeObject(deadEntity);
-        }
-        return state;
+        return updateEnvironmentPostAlienShoot(d, state, move, Nothing, deadEntities);
     }
 
     public static State advanceGameByOneRound(Domain domain, State state, String myMove, String opponentMove) {
@@ -243,7 +237,7 @@ public class SpaceInvaderMechanics {
      * @param pNum the player that owns the aliens
      * @param ship the player's ship object
      */
-    private static void spawnAliensIfRequiredAndMove(Domain d, State state, int pNum, ObjectInstance ship) {
+    public static void spawnAliensIfRequiredAndMove(Domain d, State state, int pNum, ObjectInstance ship) {
         List<ObjectInstance> aliens = state.getObjectsOfClass(ALIEN_CLASS);
         if (shouldAliensSpawn(pNum, aliens)) {
             spawnAlienRow(d, state, ship, pNum);
@@ -514,7 +508,7 @@ public class SpaceInvaderMechanics {
         return missileCount;
     }
 
-    private static void handleCollisionsAndRemoveDeadEntities(Domain domain, State state, Set<ObjectInstance> deadEntities) {
+    public static void handleCollisionsAndRemoveDeadEntities(Domain domain, State state, Set<ObjectInstance> deadEntities) {
         ObjectInstance[] ships = new ObjectInstance[2];
         ships[0] = state.getObject(SHIP_CLASS + "0");
         ships[1] = state.getObject(SHIP_CLASS + "1");
@@ -641,7 +635,7 @@ public class SpaceInvaderMechanics {
         }
     }
 
-    private static ObjectInstance getObjectAt(State state, int x, int y) {
+    public static ObjectInstance getObjectAt(State state, int x, int y) {
         for (ObjectInstance o : state.getAllObjects()) {
             if (!o.getObjectClass().hasAttribute(X)) continue;
             int ox = o.getIntValForAttribute(X);

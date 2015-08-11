@@ -70,7 +70,7 @@ public class SpaceCamp {
         State s0 = DomainDefinition.getInitialState(d, pNumActual);
         double λ = 0.9;
         double γ = 1.0;
-        DPrint.cf(0, "Learning parameters:\n\tγ = %5.3f\n\tα = %5.3f\n\tλ = %4.2f\n\tε = %4.2f\n", γ, α, λ, ε);
+        DPrint.cf(0, "Learning parameters:\n\tγ = %5.5f\n\tα = %5.5f\n\tλ = %4.3f\n\tε = %4.3f\n", γ, α, λ, ε);
         DPrint.toggleCode(VFAFile.DEBUG_CODE, false);
         String pFile =  "SIHeuristicsP" + pNumActual;
         SpaceInvaderHeuristics3 fd = new SpaceInvaderHeuristics3(pFile+".bin", 0.0, d);

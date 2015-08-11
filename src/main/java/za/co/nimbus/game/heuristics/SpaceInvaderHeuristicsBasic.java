@@ -111,6 +111,7 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
         //Protocol A - Dont get killed
         calcDirectFiringLinePriorities(canShoot, radar[RADAR_RANGE]);
         calcOffsetFiringLinePriorities(s, canShoot, radar, -1);
+        calcOffsetFiringLinePriorities(s, canShoot, radar, 1);
         //Protocol B - Kill aliens
         calcShootPriorities(s, canShoot);
         //Protocol C - Build Buildings
@@ -133,19 +134,20 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
                     mr = bRadar[RADAR_RANGE + i];
                 }
             }
-            if (mr == 2) {
+            int dxm =  Math.abs(dx - mi); //distance from ship to projectile
+            if (mr > 1 && mr <= 3) {
                 //It's too late already really
-                if ((dx - mi) < 3) priorities[BUILD_SHIELDS] += HIGH;
+                if (dxm < 2) priorities[BUILD_SHIELDS] += HHIGH;
             }
-            if (mr > 2 && mr <= 4) {
-                dx = dx - mi;
-                if (dx == 0 && canShoot) priorities[SHOOT] += HHIGH;
+            if (mr == 4) {
+                if (dxm == 0 && canShoot) priorities[SHOOT] += HHIGH;
                 urgent = MED + 2;
+                dx = dx - mi;
             }
             if (mr > 4  && mr < MAP_HEIGHT/2) {
-                dx = dx - mi;
-                if (dx == 0 && canShoot) priorities[SHOOT] += HIGH;
-                urgent = MED;
+                if (dxm == 0 && canShoot) priorities[SHOOT] += HIGH;
+                urgent = MED + 1;
+                dx = dx -mi;
             }
             if (dx < 0) priorities[MOVE_RIGHT] += LOW + urgent;
             if (dx == 0) priorities[NOTHING] += LOW + urgent;
@@ -211,10 +213,10 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
             State sNext = simulateTurns(s, new String[]{move});
             canShootNextTurn = canPlayerFire(sNext.getObject(SHIP_CLASS + "0"));
         }
-        if (radar[RADAR_RANGE + dir] <= 2) {
-            priorities[NOTHING - dir] += HHIGH; //Evade
+        if (radar[RADAR_RANGE + dir] <= 3) {
+            priorities[NOTHING - dir] += HIGH; //Evade
         }
-        if (radar[RADAR_RANGE + dir] == 3) {
+        if (radar[RADAR_RANGE + dir] == 4) {
             if (canShoot || canShootNextTurn) {
                 priorities[NOTHING + dir] += HIGH; //Move & Shoot
                 priorities[NOTHING - dir] += MED;  //Evade
@@ -224,10 +226,13 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
                 priorities[BUILD_SHIELDS] += LOW;  //Block with shields
             }
         }
+        if (radar[RADAR_RANGE + 2*dir] <= 4) {
+            priorities[NOTHING + dir] = -HHIGH;
+        }
     }
 
     private void calcDirectFiringLinePriorities(boolean canShoot, int range) {
-        if (range <= 3) {
+        if (range <= 4) {
             if (canShoot) {
                 priorities[SHOOT] += HHIGH;
             } else {
@@ -235,9 +240,9 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
                 priorities[MOVE_RIGHT] += HIGH;
             }
         }
-        if (range == 4 && canShoot) priorities[SHOOT] += MED;
-        if (range > 5 && range < MAP_HEIGHT/2 && canShoot) priorities[SHOOT] += LOW;
-        if (range >= 4 && range < MAP_HEIGHT/2 && !canShoot) {
+        if (range == 5 && canShoot) priorities[SHOOT] += MED;
+        if (range > 6 && range < MAP_HEIGHT/2 && canShoot) priorities[SHOOT] += LOW;
+        if (range >= 5 && range < MAP_HEIGHT/2 && !canShoot) {
             priorities[NOTHING] += LOW;
             priorities[BUILD_SHIELDS] += LOW;
             priorities[MOVE_RIGHT] += LOW;
@@ -249,31 +254,38 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
     private State simulateTurns(State state, String[] moveSequence) {
         State s= state.copy();
         for (String move : moveSequence) {
-            SpaceInvaderMechanics.moveProjectiles(s, MISSILE_CLASS);
-            s = SpaceInvaderMechanics.simulateAliensShipOnly(domain, s, move);
+            s = SpaceInvaderMechanics.simulateTurnWithoutAlienFire(domain, s, move);
         }
         return s;
     }
 
     private int getKillRange(State state, String[] moveSequence) {
         State s= state.copy();
+        Set<ObjectInstance> deadEntities = new HashSet<>();
         ObjectInstance thisMissile = null;
-        for (int i = 0; i < MAP_HEIGHT/2; i++){
+        for (int i = 0; i < 9; i++){
+            deadEntities.clear();
             SpaceInvaderMechanics.moveProjectiles(s, MISSILE_CLASS);
             if (gotKill(s, thisMissile)) return i;
+            SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, s, deadEntities);
+            SpaceInvaderMechanics.moveProjectiles(s, BULLET_CLASS);
+            SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, s, deadEntities);
+            SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, s, 0, s.getObject(SHIP_CLASS+"0"));
+            SpaceInvaderMechanics.spawnAliensIfRequiredAndMove(domain, s, 1, s.getObject(SHIP_CLASS+"1"));
+            if (gotKill(s, thisMissile)) return i;
+            SpaceInvaderMechanics.handleCollisionsAndRemoveDeadEntities(domain, s, deadEntities);
             String move = i < moveSequence.length? moveSequence[i] : Nothing;
-            s = SpaceInvaderMechanics.simulateAliensShipOnly(domain, s, move);
+            SpaceInvaderMechanics.updateEnvironmentPostAlienShoot(domain, s, move, Nothing, deadEntities);
             if (move.equals(Shoot)) {
                 try {
                     thisMissile = s.getObjectsOfClass(MISSILE_CLASS).stream().filter(
-                            m -> m.getIntValForAttribute(PNUM) == 0
-                                    && m.getIntValForAttribute(Y) == 2
+                            m -> m.getIntValForAttribute(PNUM) == 0 && m.getIntValForAttribute(Y) == 2
                     ).findFirst().get();
                 } catch (NoSuchElementException e) {
                     return 1; //Missile hit on impact
                 }
             }
-            if (gotKill(s, thisMissile)) return i;
+
         }
         return 0; //Whiffed
     }
@@ -303,9 +315,15 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
      */
     private int[] getProjectileRadar(int x0, State s) {
         List<ObjectInstance> allProjectiles = s.getObjectsOfClass(MISSILE_CLASS);
+        List<ObjectInstance> myMissiles =  allProjectiles.stream().filter(m -> m.getIntValForAttribute(PNUM) == 0).collect(Collectors.toList());
         allProjectiles.addAll(s.getObjectsOfClass(BULLET_CLASS));
         List<ObjectInstance> projectiles = allProjectiles.stream().filter(
                 projectile -> projectile.getIntValForAttribute(PNUM) != 0).collect(Collectors.toList());
+        //Check if any of my missiles will intercept these
+        for (ObjectInstance missile : myMissiles) {
+            ObjectInstance p = checkIntercept(s, missile, projectiles);
+            if (p != null) projectiles.remove(p);
+        }
         int[] value = new int[2* RADAR_RANGE +1];
         for (int i = 0; i < 2 * RADAR_RANGE + 1; i++) {
             value[i] = MAP_HEIGHT;
@@ -315,13 +333,30 @@ public class SpaceInvaderHeuristicsBasic extends Heuristics {
             //Don't worry if shields are covering
             int dX = Math.abs(pLoc.x - x0);
             if (dX <= RADAR_RANGE) {
-                //Adjust the danger level for projectiles off to the side to account for us having to move there over time
-                //i.e. a missile 3 to the left at y=2 will never be able to hit us
                 int index = pLoc.x - x0 + RADAR_RANGE;
                 value[index] = Math.min(value[index],pLoc.y); //Get closest missile in column
             }
         }
         return value;
+    }
+
+    private ObjectInstance checkIntercept(State s, ObjectInstance missile, List<ObjectInstance> projectiles) {
+        Location mLoc = Location.getObjectLocation(missile);
+        for (ObjectInstance projectile : projectiles) {
+            boolean intercept = true;
+            Location pLoc = Location.getObjectLocation(projectile);
+            if (pLoc.x != mLoc.x || pLoc.y < mLoc.y) continue;
+            if (pLoc.y - mLoc.y <= 1) return projectile;
+            for (int y = mLoc.y+1; y < pLoc.y; y++) {
+                ObjectInstance o = SpaceInvaderMechanics.getObjectAt(s, pLoc.x, y);
+                if (o != null) {
+                    intercept = false;
+                    break;
+                }
+            }
+            if (intercept) return projectile;
+        }
+        return null;
     }
 
 
