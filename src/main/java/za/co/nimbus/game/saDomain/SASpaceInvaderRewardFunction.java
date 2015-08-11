@@ -6,8 +6,7 @@ import burlap.oomdp.singleagent.GroundedAction;
 import burlap.oomdp.singleagent.RewardFunction;
 import za.co.nimbus.game.rules.GameOver;
 
-import static za.co.nimbus.game.constants.Attributes.KILLS;
-import static za.co.nimbus.game.constants.Attributes.LIVES;
+import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.ObjectClasses.SHIP_CLASS;
 import static za.co.nimbus.game.constants.Commands.BuildShield;
 import static za.co.nimbus.game.constants.Commands.BuildMissileController;
@@ -44,7 +43,15 @@ public class SASpaceInvaderRewardFunction implements RewardFunction {
         double reward = SURVIVAL_REWARD;
         reward += delta[0]*KILL_REWARD;
         reward += delta[1]*DIED_COST;
+        if (lostBuilding(s, s_prime, MISSILE_CONTROL)) reward -= DIED_COST;
+        if (lostBuilding(s, s_prime, ALIEN_FACTORY)) reward -= DIED_COST;
         return reward;
+    }
+
+    private boolean lostBuilding(State s, State s_prime, String building) {
+        boolean hadBuilding = s.getObject(SHIP_CLASS + "0").getIntValForAttribute(building) >= 0;
+        boolean hasBuilding = s_prime.getObject(SHIP_CLASS + "0").getIntValForAttribute(building) >= 0;
+        return hadBuilding && !hasBuilding;
     }
 
     /**

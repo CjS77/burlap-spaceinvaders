@@ -80,11 +80,20 @@ public class SpaceCamp {
         StateParser sp = new StateJSONParser(d);
         double Rcum = 0.0;
         int PER = 1000;
+        double[] rollingR = new double[100];
+        double rAve = 0.0;
+        double rollingCum = 0.0;
         for(int i = 0; i < numEpisodes; i++){
             EpisodeAnalysis ea = sarsa.runLearningEpisodeFrom(s0); //run learning episode
             double R = ea.getDiscountedReturn(γ);
             Rcum += R;
-            System.out.printf(R > 0? "o" : ".");
+            if (i>100) {
+                rollingCum += R - rollingR[i % 100];
+                rAve = rollingCum*0.01;
+            }
+            rollingR[i%100] = R;
+            if (rAve > 100) break;
+            System.out.printf(R > 100 ? "o" : ".");
             VFAFile.saveVFAToFile(vfa, pFile+".bin", s0, d, fd);
             if (i%PER == 0) {
                 System.out.printf("\n%d games simulated\nAverage Return over period: %5.2f\n", i, Rcum/PER);
@@ -97,9 +106,9 @@ public class SpaceCamp {
                 }
             }
         }
-        System.out.println("\nLearning complete");
+        DPrint.cf(0, "\nLearning complete - Rolling average: %6.4f", rAve);
         VFAFile.saveVFAToASCIIFile(vfa, pFile+".txt", s0, d, fd);
-        VFAFile.saveVFAToFile(vfa, pFile+".bin", s0, d, fd);
+            VFAFile.saveVFAToFile(vfa, pFile+".bin", s0, d, fd);
         Visualizer v = SpaceInvaderVisualiser.getVisualiser();
         new EpisodeSequenceVisualizer(v, d, sp, "sarsa" + pNumActual, 26*MetaData.MAP_WIDTH, 26*MetaData.MAP_HEIGHT);
     }
