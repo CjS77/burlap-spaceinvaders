@@ -1,8 +1,9 @@
-package za.co.nimbus.game.world;
+package za.co.nimbus.stochasticgame.world;
 
 import burlap.oomdp.auxiliary.StateGenerator;
 import burlap.oomdp.core.Domain;
 import burlap.oomdp.core.State;
+import za.co.nimbus.game.rules.DomainDefinition;
 
 /**
  * Generates initial states of the Space Invader game

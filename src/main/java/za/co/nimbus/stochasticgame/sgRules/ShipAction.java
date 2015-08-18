@@ -1,4 +1,4 @@
-package za.co.nimbus.game.rules;
+package za.co.nimbus.stochasticgame.sgRules;
 
 import burlap.oomdp.core.ObjectInstance;
 import burlap.oomdp.core.State;
@@ -10,7 +10,7 @@ import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.Commands.*;
 
 /**
- * Defeines the rules for the Ship's allowable Actions
+ * Defines the rules for the Ship's allowable Actions
  */
 public class ShipAction extends SingleAction {
     public ShipAction(SGDomain d, String name) {

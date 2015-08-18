@@ -1,4 +1,4 @@
-package za.co.nimbus.game;
+package za.co.nimbus.stochasticgame;
 
 import burlap.behavior.statehashing.DiscreteStateHashFactory;
 import burlap.behavior.stochasticgame.GameAnalysis;
@@ -21,7 +21,6 @@ import burlap.oomdp.core.State;
 import burlap.oomdp.core.TerminalFunction;
 import burlap.oomdp.stochasticgames.*;
 import burlap.oomdp.stochasticgames.common.ConstantSGStateGenerator;
-import burlap.oomdp.stochasticgames.common.VisualWorldObserver;
 import burlap.oomdp.visualizer.Visualizer;
 
 

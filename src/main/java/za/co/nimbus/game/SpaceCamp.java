@@ -3,9 +3,7 @@ package za.co.nimbus.game;
 import burlap.behavior.singleagent.*;
 import burlap.behavior.singleagent.learning.tdmethods.vfa.GradientDescentSarsaLam;
 import burlap.behavior.singleagent.planning.commonpolicies.EpsilonGreedy;
-import burlap.behavior.singleagent.planning.stochastic.sparsesampling.SparseSampling;
 import burlap.behavior.singleagent.vfa.ValueFunctionApproximation;
-import burlap.behavior.singleagent.vfa.common.LinearVFA;
 import burlap.debugtools.DPrint;
 import burlap.oomdp.auxiliary.StateParser;
 import burlap.oomdp.auxiliary.common.StateJSONParser;
@@ -14,14 +12,12 @@ import burlap.oomdp.singleagent.RewardFunction;
 import burlap.oomdp.singleagent.SADomain;
 import burlap.oomdp.visualizer.Visualizer;
 import za.co.nimbus.game.constants.MetaData;
-import za.co.nimbus.game.heuristics.SpaceInvaderFeatures;
-import za.co.nimbus.game.heuristics.SpaceInvaderHeuristics2;
 import za.co.nimbus.game.heuristics.SpaceInvaderHeuristics3;
 import za.co.nimbus.game.heuristics.VFAFile;
 import za.co.nimbus.game.rules.GameOver;
 import za.co.nimbus.game.saDomain.*;
 import za.co.nimbus.game.visualiser.SpaceInvaderVisualiser;
-import za.co.nimbus.game.world.DomainDefinition;
+import za.co.nimbus.game.rules.DomainDefinition;
 
 import java.util.List;
 

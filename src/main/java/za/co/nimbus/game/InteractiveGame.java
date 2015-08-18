@@ -8,7 +8,7 @@ import za.co.nimbus.game.rules.GameOver;
 import za.co.nimbus.game.saDomain.SASpaceInvaderRewardFunction;
 import za.co.nimbus.game.saDomain.SpaceInvaderSingleAgentDomainFactory;
 import za.co.nimbus.game.visualiser.SpaceInvaderVisualiser;
-import za.co.nimbus.game.world.DomainDefinition;
+import za.co.nimbus.game.rules.DomainDefinition;
 
 public class InteractiveGame {
 

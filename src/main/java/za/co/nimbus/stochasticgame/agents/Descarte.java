@@ -1,4 +1,4 @@
-package za.co.nimbus.game.agents;
+package za.co.nimbus.stochasticgame.agents;
 
 import burlap.behavior.singleagent.ValueFunctionInitialization;
 import burlap.behavior.statehashing.StateHashFactory;

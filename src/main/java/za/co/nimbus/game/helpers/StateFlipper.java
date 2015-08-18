@@ -1,4 +1,4 @@
-package za.co.nimbus.game.saDomain;
+package za.co.nimbus.game.helpers;
 
 import burlap.oomdp.core.ObjectClass;
 import burlap.oomdp.core.ObjectInstance;

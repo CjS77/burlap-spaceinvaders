@@ -7,6 +7,7 @@ import burlap.oomdp.core.TransitionProbability;
 import burlap.oomdp.singleagent.Action;
 import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.constants.ObjectClasses;
+import za.co.nimbus.game.helpers.StateFlipper;
 import za.co.nimbus.game.rules.SpaceInvaderMechanics;
 
 import java.util.ArrayList;
@@ -17,7 +18,6 @@ import java.util.Set;
 import static za.co.nimbus.game.constants.Attributes.*;
 import static za.co.nimbus.game.constants.Commands.*;
 import static za.co.nimbus.game.constants.ObjectClasses.ALIEN_CLASS;
-import static za.co.nimbus.game.constants.ObjectClasses.META_CLASS;
 import static za.co.nimbus.game.constants.ObjectClasses.SHIP_CLASS;
 
 /**

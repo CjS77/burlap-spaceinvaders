@@ -1,11 +1,12 @@
-package za.co.nimbus.game.world;
+package za.co.nimbus.stochasticgame.world;
 
 import burlap.oomdp.auxiliary.DomainGenerator;
 import burlap.oomdp.core.*;
 import burlap.oomdp.stochasticgames.AgentType;
 import burlap.oomdp.stochasticgames.SGDomain;
 import burlap.oomdp.stochasticgames.SingleAction;
-import za.co.nimbus.game.constants.MetaData;
+import za.co.nimbus.stochasticgame.sgRules.ShipAction;
+import za.co.nimbus.stochasticgame.sgRules.SpaceInvaderJAM;
 import za.co.nimbus.game.rules.*;
 
 import java.util.ArrayList;

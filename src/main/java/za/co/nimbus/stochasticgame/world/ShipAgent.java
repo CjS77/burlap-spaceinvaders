@@ -1,4 +1,4 @@
-package za.co.nimbus.game.world;
+package za.co.nimbus.stochasticgame.world;
 
 import burlap.oomdp.core.State;
 import burlap.oomdp.stochasticgames.Agent;

@@ -6,7 +6,7 @@ import burlap.oomdp.core.Domain;
 import burlap.oomdp.singleagent.SADomain;
 import za.co.nimbus.game.rules.SpaceInvaderMechanics;
 import za.co.nimbus.game.saDomain.opponents.OpponentStrategyFactory;
-import za.co.nimbus.game.world.DomainDefinition;
+import za.co.nimbus.game.rules.DomainDefinition;
 
 import java.util.HashMap;
 import java.util.List;

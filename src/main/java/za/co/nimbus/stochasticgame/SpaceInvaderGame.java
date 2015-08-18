@@ -1,4 +1,4 @@
-package za.co.nimbus.game;
+package za.co.nimbus.stochasticgame;
 
 import burlap.behavior.statehashing.DiscreteStateHashFactory;
 import burlap.behavior.statehashing.StateHashFactory;
@@ -11,13 +11,13 @@ import burlap.oomdp.core.TerminalFunction;
 import burlap.oomdp.stochasticgames.*;
 import burlap.oomdp.stochasticgames.common.ConstantSGStateGenerator;
 import burlap.oomdp.stochasticgames.common.VisualWorldObserver;
-import za.co.nimbus.game.agents.RunAndHide;
-import za.co.nimbus.game.agents.SpaceInvaderAgentFactory;
+import za.co.nimbus.stochasticgame.agents.RunAndHide;
+import za.co.nimbus.stochasticgame.agents.SpaceInvaderAgentFactory;
 import za.co.nimbus.game.rules.GameOver;
-import za.co.nimbus.game.rules.SpaceInvaderRewardFunction;
+import za.co.nimbus.stochasticgame.sgRules.SpaceInvaderRewardFunction;
 import za.co.nimbus.game.visualiser.SpaceInvaderVisualiser;
-import za.co.nimbus.game.world.DomainDefinition;
-import za.co.nimbus.game.world.SpaceInvaderDomainFactory;
+import za.co.nimbus.game.rules.DomainDefinition;
+import za.co.nimbus.stochasticgame.world.SpaceInvaderDomainFactory;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package za.co.nimbus.game.rules;
+package za.co.nimbus.stochasticgame.sgRules;
 
 import burlap.oomdp.core.*;
 import burlap.oomdp.stochasticgames.GroundedSingleAction;
@@ -7,15 +7,13 @@ import burlap.oomdp.stochasticgames.JointReward;
 import za.co.nimbus.game.constants.Commands;
 import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.helpers.Location;
+import za.co.nimbus.game.rules.PlayerDead;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static za.co.nimbus.game.constants.Attributes.*;
-import static za.co.nimbus.game.constants.Commands.MoveLeft;
-import static za.co.nimbus.game.constants.Commands.MoveRight;
 import static za.co.nimbus.game.constants.Commands.Shoot;
 import static za.co.nimbus.game.constants.ObjectClasses.*;
 

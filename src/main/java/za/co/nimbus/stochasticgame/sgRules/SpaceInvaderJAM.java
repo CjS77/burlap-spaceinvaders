@@ -1,4 +1,4 @@
-package za.co.nimbus.game.rules;
+package za.co.nimbus.stochasticgame.sgRules;
 
 import burlap.debugtools.DPrint;
 import burlap.debugtools.RandomFactory;
@@ -8,6 +8,8 @@ import burlap.oomdp.stochasticgames.JointAction;
 import burlap.oomdp.stochasticgames.JointActionModel;
 import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.helpers.Location;
+import za.co.nimbus.game.rules.Collision;
+import za.co.nimbus.game.rules.OffMap;
 
 import java.util.*;
 

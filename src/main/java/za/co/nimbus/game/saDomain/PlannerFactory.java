@@ -10,7 +10,7 @@ import za.co.nimbus.game.constants.MetaData;
 import za.co.nimbus.game.rules.GameOver;
 
 /**
- * Factory class for producing Planning Straegies
+ * Factory class for producing Planning Strategies
  */
 public class PlannerFactory {
     public static QComputablePlanner getPlanner(String strategy, Domain domain, RewardFunction rf, TerminalFunction tf) {

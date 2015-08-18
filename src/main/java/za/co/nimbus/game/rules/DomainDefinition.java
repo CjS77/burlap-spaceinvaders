@@ -1,4 +1,4 @@
-package za.co.nimbus.game.world;
+package za.co.nimbus.game.rules;
 
 import burlap.oomdp.core.*;
 import za.co.nimbus.game.constants.MetaData;
